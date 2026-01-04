@@ -33,6 +33,17 @@
 
 import * as tf from '@tensorflow/tfjs';
 import { NeuralNetwork } from '../NeuralNetwork';
+import {
+  EarlyStopping,
+  EarlyStoppingConfig,
+  LRScheduler,
+  LRSchedulerConfig,
+  Checkpointer,
+  CheckpointConfig,
+  GradientClipConfig,
+  createAdamW,
+  TrainingProgress
+} from './TrainingUtils';
 
 /**
  * Training configuration.
@@ -49,13 +60,23 @@ export interface TrainingConfig {
   /** Shuffle data each epoch (default: true) */
   shuffle?: boolean;
   /** Optimizer type (default: 'adam') */
-  optimizer?: 'adam' | 'sgd' | 'rmsprop' | 'adagrad';
+  optimizer?: 'adam' | 'adamw' | 'sgd' | 'rmsprop' | 'adagrad';
+  /** Weight decay for AdamW (default: 0.01) */
+  weightDecay?: number;
   /** Loss function (default: auto-detected) */
   loss?: 'mse' | 'categoricalCrossentropy' | 'binaryCrossentropy' | 'custom';
   /** Custom loss function */
   customLoss?: (yTrue: tf.Tensor, yPred: tf.Tensor) => tf.Scalar;
   /** Training callbacks */
   callbacks?: TrainingCallbacks;
+  /** Early stopping configuration */
+  earlyStopping?: EarlyStoppingConfig;
+  /** Learning rate scheduler configuration */
+  lrScheduler?: LRSchedulerConfig;
+  /** Checkpointing configuration */
+  checkpointing?: CheckpointConfig;
+  /** Gradient clipping configuration */
+  gradientClip?: GradientClipConfig;
 }
 
 /**
@@ -79,6 +100,8 @@ export interface TrainingLogs {
   finalLoss: number;
   finalValLoss?: number;
   history: EpochLogs[];
+  /** Whether training stopped early */
+  stoppedEarly?: boolean;
 }
 
 /**
@@ -204,7 +227,7 @@ export class ModelTrainer<TNetParams> {
    * Compile the model for training.
    */
   public compile(config: Partial<TrainingConfig> = {}): void {
-    const { optimizer = 'adam', learningRate = 0.0001 } = config;
+    const { optimizer = 'adam', learningRate = 0.0001, weightDecay = 0.01 } = config;
 
     // Make parameters trainable (if not frozen)
     const params = this._model.getParamList();
@@ -224,6 +247,9 @@ export class ModelTrainer<TNetParams> {
         break;
       case 'adagrad':
         this._optimizer = tf.train.adagrad(learningRate);
+        break;
+      case 'adamw':
+        this._optimizer = createAdamW({ learningRate, weightDecay });
         break;
       case 'adam':
       default:
@@ -254,7 +280,10 @@ export class ModelTrainer<TNetParams> {
       shuffle = true,
       loss = 'mse',
       customLoss,
-      callbacks = {}
+      callbacks = {},
+      earlyStopping: earlyStoppingConfig,
+      lrScheduler: lrSchedulerConfig,
+      checkpointing: checkpointingConfig
     } = config;
 
     if (!this._isCompiled) {
@@ -265,6 +294,21 @@ export class ModelTrainer<TNetParams> {
     if (trainableParams.length === 0) {
       throw new Error('No trainable parameters. Call unfreeze() or check model state.');
     }
+
+    // Initialize training utilities
+    const earlyStopping = earlyStoppingConfig
+      ? new EarlyStopping(earlyStoppingConfig)
+      : null;
+
+    const lrScheduler = lrSchedulerConfig
+      ? new LRScheduler(lrSchedulerConfig)
+      : null;
+
+    const checkpointer = checkpointingConfig
+      ? new Checkpointer(checkpointingConfig)
+      : null;
+
+    const progress = new TrainingProgress();
 
     // Get loss function
     const lossFunction = customLoss || this._getLossFunction(loss);
@@ -283,13 +327,20 @@ export class ModelTrainer<TNetParams> {
     const valIndices = indices.slice(numTrain);
 
     await callbacks.onTrainBegin?.();
+    progress.start();
 
     const history: EpochLogs[] = [];
     let totalBatches = 0;
+    let stoppedEarly = false;
 
     for (let epoch = 0; epoch < epochs; epoch++) {
       const epochStart = Date.now();
       await callbacks.onEpochBegin?.(epoch);
+
+      // Get current learning rate from scheduler
+      const currentLR = lrScheduler
+        ? lrScheduler.getLR(epoch, history[history.length - 1]?.valLoss)
+        : learningRate;
 
       // Shuffle training indices
       if (shuffle) {
@@ -364,30 +415,63 @@ export class ModelTrainer<TNetParams> {
         epoch,
         loss: epochLoss,
         valLoss,
-        learningRate,
+        learningRate: currentLR,
         duration: epochDuration
       };
 
       history.push(epochLogs);
+      progress.recordEpoch(epochLogs);
+
+      // Checkpointing
+      if (checkpointer) {
+        const weights = await this._model.serializeParams();
+        checkpointer.maybeSave(epoch, epochLogs, weights);
+      }
+
       await callbacks.onEpochEnd?.(epoch, epochLogs);
+
+      // Calculate ETA
+      const eta = progress.getETA(epoch, epochs);
+      const etaStr = eta > 0 ? ` - ETA: ${TrainingProgress.formatTime(eta)}` : '';
 
       console.log(
         `Epoch ${epoch + 1}/${epochs} - ` +
         `loss: ${epochLoss.toFixed(4)}` +
         (valLoss !== undefined ? ` - val_loss: ${valLoss.toFixed(4)}` : '') +
-        ` - ${epochDuration}ms`
+        (lrScheduler ? ` - lr: ${currentLR.toExponential(2)}` : '') +
+        ` - ${epochDuration}ms${etaStr}`
       );
+
+      // Early stopping check
+      if (earlyStopping?.check(epoch, epochLogs)) {
+        stoppedEarly = true;
+        console.log(`\nTraining stopped early at epoch ${epoch + 1}`);
+        break;
+      }
     }
 
+    const actualEpochs = stoppedEarly ? history.length : epochs;
+
     const finalLogs: TrainingLogs = {
-      epochs,
+      epochs: actualEpochs,
       totalBatches,
       finalLoss: history[history.length - 1].loss,
       finalValLoss: history[history.length - 1].valLoss,
-      history
+      history,
+      stoppedEarly
     };
 
     await callbacks.onTrainEnd?.(finalLogs);
+
+    // Print training summary
+    const summary = progress.getSummary();
+    console.log('\n=== Training Summary ===');
+    console.log(`Total time: ${TrainingProgress.formatTime(summary.totalTime)}`);
+    console.log(`Epochs completed: ${actualEpochs}${stoppedEarly ? ' (early stopped)' : ''}`);
+    console.log(`Best loss: ${summary.bestLoss.toFixed(6)}`);
+    if (summary.bestValLoss !== undefined) {
+      console.log(`Best val_loss: ${summary.bestValLoss.toFixed(6)}`);
+    }
 
     // Cleanup
     inputTensor.dispose();

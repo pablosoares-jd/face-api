@@ -62,6 +62,23 @@ export {
   AugmentRange
 } from './ImageAugmenter';
 
+// Training Utilities
+export {
+  EarlyStopping,
+  EarlyStoppingConfig,
+  LRScheduler,
+  LRSchedulerConfig,
+  ScheduleType,
+  Checkpointer,
+  CheckpointConfig,
+  GradientClipConfig,
+  clipGradients,
+  AdamWConfig,
+  createAdamW,
+  TrainingProgress,
+  createCallbacks
+} from './TrainingUtils';
+
 // Re-export tf for convenience (direct import to avoid circular dependency)
 import * as tf from '@tensorflow/tfjs';
 export { tf };

@@ -79,6 +79,19 @@ export {
   createCallbacks
 } from './TrainingUtils';
 
+// Specialized Trainers for specific models
+export {
+  AgeGenderTrainer,
+  AgeGenderLabels,
+  ExpressionTrainer,
+  Expression,
+  EXPRESSIONS,
+  EmbeddingTrainer,
+  createAgeGenderLabels,
+  createExpressionLabels,
+  PUBLIC_DATASETS
+} from './SpecializedTrainers';
+
 // Re-export tf for convenience (direct import to avoid circular dependency)
 import * as tf from '@tensorflow/tfjs';
 export { tf };

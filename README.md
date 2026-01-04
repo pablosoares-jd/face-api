@@ -15,6 +15,36 @@
 
 <br>
 
+## 🚀 What's New (v2.0)
+
+### Modern Architecture
+- **TensorFlow.js as peer dependency** - Eliminates webpack warnings and reduces bundle size by ~2MB
+- **WebGPU Priority Backend** - Automatic selection: WebGPU > WebGL > WASM > CPU (up to 50x faster)
+- **Modular Entry Points** - `/lite` (detection only, ~500KB) or `/full` (complete suite)
+
+### New Detectors
+- **BlazeFace** - Ultra-fast face detection (200-1000+ FPS) with 6 facial keypoints
+- **AdaFace** - State-of-the-art face recognition (99.82% LFW accuracy)
+- **FaceMesh** - 468/478 point facial landmarks from MediaPipe
+
+### KYC (Know Your Customer) Module
+- Face quality assessment (blur, lighting, pose)
+- ID document vs selfie verification
+- Real-time validation feedback
+
+### Quick Start
+```typescript
+import * as faceapi from '@vladmandic/face-api';
+
+// Auto-selects best backend (WebGPU priority)
+await faceapi.init();
+
+// Detect faces with modern BlazeFace
+const detections = await faceapi.detectAllFaces(image);
+```
+
+<br>
+
 ## Additional Documentation
 
 - [**Tutorial**](TUTORIAL.md)
@@ -504,9 +534,17 @@ Compared to [face-api.js](https://github.com/justadudewhohacks/face-api.js) vers
 
 ## Credits
 
-- Original project: [face-api.js](https://github.com/justadudewhohacks/face-api.js)
-- Original model weighs: [face-api.js-models](https://github.com/justadudewhohacks/face-api.js-models)
-- ML API Documentation: [Tensorflow/JS](https://js.tensorflow.org/api/latest/)
+### Maintainers
+- [Vladimir Mandic](https://github.com/vladmandic) - Original fork maintainer
+- [Pablo Soares](https://github.com/pablosoares-jd) - Modern architecture, WebGPU, BlazeFace, AdaFace, FaceMesh, KYC modules
+
+### References
+- Original project: [face-api.js](https://github.com/justadudewhohacks/face-api.js) by [justadudewhohacks](https://github.com/justadudewhohacks)
+- Original model weights: [face-api.js-models](https://github.com/justadudewhohacks/face-api.js-models)
+- BlazeFace: [MediaPipe BlazeFace](https://google.github.io/mediapipe/solutions/face_detection.html)
+- FaceMesh: [MediaPipe Face Mesh](https://google.github.io/mediapipe/solutions/face_mesh.html)
+- AdaFace: [AdaFace Paper](https://arxiv.org/abs/2204.00964)
+- ML API Documentation: [TensorFlow/JS](https://js.tensorflow.org/api/latest/)
 
 <br>
 

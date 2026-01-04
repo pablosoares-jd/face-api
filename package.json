@@ -50,6 +50,17 @@
     }
   },
   "author": "Vladimir Mandic <mandic00@live.com>",
+  "contributors": [
+    {
+      "name": "Vladimir Mandic",
+      "email": "mandic00@live.com",
+      "url": "https://github.com/vladmandic"
+    },
+    {
+      "name": "Pablo Soares",
+      "url": "https://github.com/pablosoares-jd"
+    }
+  ],
   "bugs": {
     "url": "https://github.com/vladmandic/face-api/issues"
   },

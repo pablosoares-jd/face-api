@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 import { ConvParams, disposeUnusedWeightTensors, extractWeightEntryFactory, ParamMapping } from '../common/index';
 import { isTensor3D } from '../utils/index';

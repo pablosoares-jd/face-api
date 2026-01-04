@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 import { ConvParams, SeparableConvParams } from '../common/index';
 import { depthwiseSeparableConv } from '../common/depthwiseSeparableConv';

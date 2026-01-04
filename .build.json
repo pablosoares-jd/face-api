@@ -151,6 +151,14 @@
         "typings": "types/lib",
         "typedoc": "typedoc",
         "external": ["@tensorflow"]
+      },
+      {
+        "name": "faceapi/browser/lite",
+        "platform": "browser",
+        "format": "esm",
+        "input": "src/lite.ts",
+        "output": "dist/face-api.lite.js",
+        "external": ["@tensorflow"]
       }
     ]
   },

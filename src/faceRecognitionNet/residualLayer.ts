@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 import { conv, convDown, convNoRelu } from './convLayer';
 import { ResidualLayerParams } from './types';

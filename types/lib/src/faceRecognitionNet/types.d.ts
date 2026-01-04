@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 import { ConvParams } from '../common/index';
 export type ScaleLayerParams = {
     weights: tf.Tensor1D;

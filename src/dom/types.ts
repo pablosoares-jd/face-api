@@ -1,4 +1,4 @@
-import type { Tensor3D, Tensor4D } from '../../dist/tfjs.esm';
+import type { Tensor3D, Tensor4D } from '@tensorflow/tfjs';
 
 import { NetInput } from './NetInput';
 

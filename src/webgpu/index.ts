@@ -3,7 +3,7 @@
  * Provides helpers for setting up WebGPU with face-api.js.
  */
 
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 export interface WebGPUInfo {
   supported: boolean;
@@ -110,7 +110,29 @@ export function isWebGPUActive(): boolean {
 /**
  * Backend priority order for automatic fallback.
  */
-export type BackendType = 'webgpu' | 'webgl' | 'cpu';
+export type BackendType = 'webgpu' | 'webgl' | 'wasm' | 'cpu';
+
+/**
+ * Backend performance characteristics.
+ */
+export interface BackendPerformance {
+  backend: BackendType;
+  estimatedSpeedup: number; // Relative to CPU
+  memoryEfficiency: 'high' | 'medium' | 'low';
+  parallelization: 'gpu' | 'simd' | 'none';
+}
+
+/**
+ * Get performance characteristics for each backend.
+ */
+export function getBackendPerformance(): BackendPerformance[] {
+  return [
+    { backend: 'webgpu', estimatedSpeedup: 50, memoryEfficiency: 'high', parallelization: 'gpu' },
+    { backend: 'webgl', estimatedSpeedup: 20, memoryEfficiency: 'medium', parallelization: 'gpu' },
+    { backend: 'wasm', estimatedSpeedup: 5, memoryEfficiency: 'high', parallelization: 'simd' },
+    { backend: 'cpu', estimatedSpeedup: 1, memoryEfficiency: 'low', parallelization: 'none' },
+  ];
+}
 
 /**
  * Result of backend initialization with fallback.
@@ -140,10 +162,18 @@ export interface BackendInitResult {
  * }
  * ```
  */
+/**
+ * Check if WASM backend is available.
+ */
+export function isWasmSupported(): boolean {
+  return typeof WebAssembly !== 'undefined';
+}
+
 export async function initBestBackend(
   preferredBackend: BackendType = 'webgpu',
 ): Promise<BackendInitResult> {
-  const backends: BackendType[] = ['webgpu', 'webgl', 'cpu'];
+  // Priority order: WebGPU > WebGL > WASM > CPU
+  const backends: BackendType[] = ['webgpu', 'webgl', 'wasm', 'cpu'];
 
   // Reorder to put preferred first
   const orderedBackends = [
@@ -155,17 +185,31 @@ export async function initBestBackend(
 
   for (const backend of orderedBackends) {
     try {
-      if (backend === 'webgpu') {
-        if (!isWebGPUSupported()) {
-          lastError = 'WebGPU not supported in this browser';
-          continue;
-        }
-        await tf.setBackend('webgpu');
-      } else {
-        await tf.setBackend(backend);
+      // Check support before attempting
+      if (backend === 'webgpu' && !isWebGPUSupported()) {
+        lastError = 'WebGPU not supported in this browser';
+        continue;
+      }
+      if (backend === 'webgl' && !isWebGLSupported()) {
+        lastError = 'WebGL not supported in this browser';
+        continue;
+      }
+      if (backend === 'wasm' && !isWasmSupported()) {
+        lastError = 'WebAssembly not supported in this browser';
+        continue;
       }
 
+      await tf.setBackend(backend);
       await tf.ready();
+
+      // Log success for debugging
+      if (typeof console !== 'undefined') {
+        const perf = getBackendPerformance().find((p) => p.backend === backend);
+        console.log(
+          `[face-api] Backend initialized: ${backend} ` +
+          `(${perf?.estimatedSpeedup}x speedup, ${perf?.parallelization} parallelization)`,
+        );
+      }
 
       return {
         backend,
@@ -222,6 +266,73 @@ export function getAvailableBackends(): { backend: BackendType; supported: boole
   return [
     { backend: 'webgpu', supported: isWebGPUSupported() },
     { backend: 'webgl', supported: isWebGLSupported() },
+    { backend: 'wasm', supported: isWasmSupported() },
     { backend: 'cpu', supported: true },
   ];
+}
+
+/**
+ * Auto-initialize the best backend.
+ * This is called automatically when face-api is first used if no backend is set.
+ */
+let backendInitPromise: Promise<BackendInitResult> | null = null;
+
+export async function ensureBackendInitialized(): Promise<BackendInitResult> {
+  // Return cached promise if already initializing/initialized
+  if (backendInitPromise) {
+    return backendInitPromise;
+  }
+
+  // Check if a backend is already set
+  const currentBackend = tf.getBackend();
+  if (currentBackend) {
+    return {
+      backend: currentBackend as BackendType,
+      isPreferred: true,
+    };
+  }
+
+  // Initialize with WebGPU priority
+  backendInitPromise = initBestBackend('webgpu');
+  return backendInitPromise;
+}
+
+/**
+ * Reset backend state (for testing).
+ */
+export function resetBackendState(): void {
+  backendInitPromise = null;
+}
+
+/**
+ * Recommended way to initialize face-api.
+ * Automatically selects the best backend with WebGPU priority.
+ *
+ * @example
+ * ```typescript
+ * import * as faceapi from '@vladmandic/face-api';
+ *
+ * // Initialize with best available backend
+ * await faceapi.init();
+ *
+ * // Or with specific preference
+ * await faceapi.init({ preferredBackend: 'webgl' });
+ * ```
+ */
+export async function init(options: {
+  preferredBackend?: BackendType;
+  silent?: boolean;
+} = {}): Promise<BackendInitResult> {
+  const { preferredBackend = 'webgpu', silent = false } = options;
+
+  const result = await initBestBackend(preferredBackend);
+
+  if (!silent && !result.isPreferred && result.fallbackReason) {
+    console.warn(
+      `[face-api] Could not use ${preferredBackend}: ${result.fallbackReason}. ` +
+      `Using ${result.backend} instead.`,
+    );
+  }
+
+  return result;
 }

@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 import { FaceDetection, Point } from '../classes/index';
 import { ParamMapping } from '../common/index';

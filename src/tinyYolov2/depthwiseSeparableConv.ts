@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 import { SeparableConvParams } from '../common/types';
 import { leaky } from './leaky';

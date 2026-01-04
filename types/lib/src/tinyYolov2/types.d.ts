@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 import { BoundingBox } from '../classes';
 import { ConvParams } from '../common/index';
 import { SeparableConvParams } from '../common/types';

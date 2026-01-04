@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 import { FaceDetection } from '../classes/FaceDetection';
 import { TNetInput } from '../dom/index';
 import { WithFaceDetection } from '../factories/WithFaceDetection';

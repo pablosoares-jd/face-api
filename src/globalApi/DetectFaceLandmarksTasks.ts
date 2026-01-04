@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
 import { extractFaces, extractFaceTensors, TNetInput } from '../dom/index';

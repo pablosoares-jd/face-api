@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 import { pointwiseConvLayer } from './pointwiseConvLayer';
 import { MobileNetV1 } from './types';

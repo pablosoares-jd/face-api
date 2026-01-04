@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 
 /**
  * Calculate IOU (Intersection over Union) between two boxes using pre-fetched data.

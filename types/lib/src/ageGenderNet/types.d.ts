@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 import { FCParams } from '../common/index';
 export declare enum Gender {
     FEMALE = "female",

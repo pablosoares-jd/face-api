@@ -1,4 +1,4 @@
-import * as tf from '../../dist/tfjs.esm.js';
+import * as tf from '@tensorflow/tfjs';
 import { TinyXception } from '../xception/TinyXception';
 import { AgeAndGenderPrediction, NetOutput, NetParams } from './types';
 import { NeuralNetwork } from '../NeuralNetwork';

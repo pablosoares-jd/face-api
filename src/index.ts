@@ -1,4 +1,4 @@
-import * as tf from '../dist/tfjs.esm';
+import * as tf from '@tensorflow/tfjs';
 import * as draw from './draw/index';
 import * as utils from './utils/index';
 import * as pkg from '../package.json';

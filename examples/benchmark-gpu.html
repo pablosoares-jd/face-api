@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face-API GPU Benchmark</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+    }
+    h1 { color: #00d4ff; }
+    h2 { color: #7b68ee; margin-top: 30px; }
+    .card {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+      border: 1px solid #0f3460;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      font-size: 16px;
+      border-radius: 25px;
+      cursor: pointer;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+    button:hover { transform: scale(1.05); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #0f3460;
+    }
+    th { background: #0f3460; color: #00d4ff; }
+    tr:hover { background: #1a1a4e; }
+    .status { padding: 10px; border-radius: 5px; margin: 10px 0; }
+    .status.info { background: #0f3460; }
+    .status.success { background: #1b4332; }
+    .status.error { background: #4a1515; }
+    .progress-bar {
+      height: 6px;
+      background: #0f3460;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #7b68ee);
+      transition: width 0.3s;
+    }
+    .metric { font-size: 24px; font-weight: bold; color: #00d4ff; }
+    .comparison { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+    .comparison-card {
+      background: #0f3460;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .faster { color: #00ff88; }
+    .slower { color: #ff6b6b; }
+    pre {
+      background: #0a0a1a;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    #log { max-height: 300px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h1>🚀 Face-API GPU Benchmark</h1>
+
+  <div class="card">
+    <h2>⚙️ Configuração</h2>
+    <div id="config-info"></div>
+    <div style="margin-top: 15px;">
+      <button id="btn-webgl" onclick="setBackend('webgl')">WebGL</button>
+      <button id="btn-webgpu" onclick="setBackend('webgpu')">WebGPU</button>
+      <button id="btn-cpu" onclick="setBackend('cpu')">CPU</button>
+      <button id="btn-wasm" onclick="setBackend('wasm')">WASM</button>
+    </div>
+    <div id="backend-status" class="status info" style="margin-top: 15px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>🏃 Executar Benchmark</h2>
+    <button id="btn-run" onclick="runFullBenchmark()">Iniciar Benchmark Completo</button>
+    <button onclick="runQuickBenchmark()">Benchmark Rápido</button>
+    <div class="progress-bar"><div id="progress" class="progress-fill" style="width: 0%"></div></div>
+    <div id="current-task"></div>
+  </div>
+
+  <div class="card" id="results-section" style="display: none;">
+    <h2>📊 Resultados</h2>
+    <div class="comparison" id="comparison"></div>
+    <table id="results-table">
+      <thead>
+        <tr>
+          <th>Operação</th>
+          <th>Média (ms)</th>
+          <th>P50 (ms)</th>
+          <th>P95 (ms)</th>
+          <th>vs CPU</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>📝 Log</h2>
+    <pre id="log"></pre>
+  </div>
+
+  <div class="card" id="export-section" style="display: none;">
+    <h2>💾 Exportar</h2>
+    <button onclick="exportJSON()">Baixar JSON</button>
+    <button onclick="copyToClipboard()">Copiar para Clipboard</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.22.0/dist/tf-backend-wasm.min.js"></script>
+
+  <script>
+    // Configuração
+    const WARMUP_RUNS = 5;
+    const BENCHMARK_RUNS = 30;
+
+    let currentBackend = 'webgl';
+    let benchmarkResults = {};
+    let cpuBaseline = null;
+
+    // Inicialização
+    async function init() {
+      log('Inicializando TensorFlow.js...');
+
+      // Detectar WebGPU
+      const hasWebGPU = 'gpu' in navigator;
+      document.getElementById('btn-webgpu').disabled = !hasWebGPU;
+      if (!hasWebGPU) {
+        document.getElementById('btn-webgpu').title = 'WebGPU não disponível neste navegador';
+      }
+
+      await tf.ready();
+      updateConfigInfo();
+      log(`✅ TensorFlow.js ${tf.version.tfjs} pronto`);
+      log(`Backend: ${tf.getBackend()}`);
+    }
+
+    function updateConfigInfo() {
+      const info = document.getElementById('config-info');
+      const gpu = getGPUInfo();
+
+      info.innerHTML = `
+        <p><strong>TensorFlow.js:</strong> ${tf.version.tfjs}</p>
+        <p><strong>Backend Atual:</strong> ${tf.getBackend()}</p>
+        <p><strong>GPU:</strong> ${gpu}</p>
+        <p><strong>WebGPU:</strong> ${'gpu' in navigator ? '✅ Disponível' : '❌ Não disponível'}</p>
+      `;
+    }
+
+    function getGPUInfo() {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      if (!gl) return 'Não detectada';
+
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo) {
+        return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      }
+      return 'WebGL disponível';
+    }
+
+    async function setBackend(backend) {
+      const status = document.getElementById('backend-status');
+      status.className = 'status info';
+      status.textContent = `Mudando para ${backend}...`;
+
+      try {
+        if (backend === 'wasm') {
+          await tf.setBackend('wasm');
+        } else if (backend === 'webgpu') {
+          // WebGPU precisa de import dinâmico
+          if (!tf.findBackend('webgpu')) {
+            status.textContent = 'Carregando WebGPU backend...';
+            await import('https://cdn.jsdelivr.net/npm/@aspect-ai/webgpu-tfjs-backend@1.0.0/dist/index.js')
+              .catch(() => {
+                throw new Error('WebGPU backend não disponível');
+              });
+          }
+          await tf.setBackend('webgpu');
+        } else {
+          await tf.setBackend(backend);
+        }
+
+        await tf.ready();
+        currentBackend = tf.getBackend();
+        status.className = 'status success';
+        status.textContent = `✅ Backend: ${currentBackend}`;
+        updateConfigInfo();
+        log(`Backend alterado para: ${currentBackend}`);
+      } catch (e) {
+        status.className = 'status error';
+        status.textContent = `❌ Erro: ${e.message}`;
+        log(`Erro ao mudar backend: ${e.message}`);
+      }
+    }
+
+    function log(message) {
+      const logEl = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      logEl.textContent += `[${time}] ${message}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setProgress(percent, task = '') {
+      document.getElementById('progress').style.width = `${percent}%`;
+      document.getElementById('current-task').textContent = task;
+    }
+
+    function calculateStats(times) {
+      times.sort((a, b) => a - b);
+      const mean = times.reduce((a, b) => a + b, 0) / times.length;
+      const variance = times.reduce((a, t) => a + (t - mean) ** 2, 0) / times.length;
+
+      return {
+        mean: mean,
+        std: Math.sqrt(variance),
+        min: times[0],
+        max: times[times.length - 1],
+        p50: times[Math.floor(times.length * 0.5)],
+        p95: times[Math.floor(times.length * 0.95)],
+        p99: times[Math.floor(times.length * 0.99)]
+      };
+    }
+
+    async function benchmarkOp(name, fn, runs = BENCHMARK_RUNS) {
+      // Warmup
+      for (let i = 0; i < WARMUP_RUNS; i++) {
+        const t = fn();
+        await t.data();
+        t.dispose();
+      }
+
+      // Benchmark
+      const times = [];
+      for (let i = 0; i < runs; i++) {
+        const start = performance.now();
+        const t = fn();
+        await t.data();
+        t.dispose();
+        times.push(performance.now() - start);
+      }
+
+      return calculateStats(times);
+    }
+
+    async function runFullBenchmark() {
+      const btn = document.getElementById('btn-run');
+      btn.disabled = true;
+
+      benchmarkResults = {
+        timestamp: new Date().toISOString(),
+        backend: tf.getBackend(),
+        gpu: getGPUInfo(),
+        tfVersion: tf.version.tfjs,
+        userAgent: navigator.userAgent,
+        operations: {},
+        models: {}
+      };
+
+      try {
+        log('='.repeat(50));
+        log(`Iniciando benchmark completo (${tf.getBackend()})`);
+
+        const operations = [
+          // Matmul
+          { name: 'matmul_256x256', fn: () => tf.matMul(tf.randomNormal([256, 256]), tf.randomNormal([256, 256])) },
+          { name: 'matmul_512x512', fn: () => tf.matMul(tf.randomNormal([512, 512]), tf.randomNormal([512, 512])) },
+          { name: 'matmul_1024x1024', fn: () => tf.matMul(tf.randomNormal([1024, 1024]), tf.randomNormal([1024, 1024])) },
+
+          // Conv2D
+          { name: 'conv2d_112x112', fn: () => tf.conv2d(tf.randomNormal([1, 112, 112, 3]), tf.randomNormal([3, 3, 3, 64]), 1, 'same') },
+          { name: 'conv2d_224x224', fn: () => tf.conv2d(tf.randomNormal([1, 224, 224, 3]), tf.randomNormal([3, 3, 3, 64]), 1, 'same') },
+          { name: 'conv2d_416x416', fn: () => tf.conv2d(tf.randomNormal([1, 416, 416, 3]), tf.randomNormal([3, 3, 3, 32]), 2, 'same') },
+
+          // Depthwise Conv (comum em MobileNet)
+          { name: 'depthwise_conv_112', fn: () => tf.depthwiseConv2d(tf.randomNormal([1, 112, 112, 32]), tf.randomNormal([3, 3, 32, 1]), 1, 'same') },
+
+          // Batch operations
+          { name: 'batch_norm', fn: () => tf.batchNorm(tf.randomNormal([8, 56, 56, 64]), tf.randomNormal([64]), tf.randomNormal([64]), tf.randomNormal([64]), tf.randomNormal([64]), 0.001) },
+
+          // Pooling
+          { name: 'maxpool_112', fn: () => tf.maxPool(tf.randomNormal([1, 112, 112, 64]), 2, 2, 'same') },
+          { name: 'avgpool_global', fn: () => tf.mean(tf.randomNormal([1, 7, 7, 512]), [1, 2]) },
+
+          // Activations
+          { name: 'relu_large', fn: () => tf.relu(tf.randomNormal([8, 112, 112, 64])) },
+          { name: 'softmax', fn: () => tf.softmax(tf.randomNormal([8, 7])) },
+
+          // Simulated model inference
+          { name: 'face_expression_sim', fn: () => simulateFaceExpression() },
+          { name: 'face_detection_sim', fn: () => simulateFaceDetection() },
+        ];
+
+        for (let i = 0; i < operations.length; i++) {
+          const op = operations[i];
+          setProgress((i / operations.length) * 100, `Testando ${op.name}...`);
+          log(`Benchmarking ${op.name}...`);
+
+          try {
+            const stats = await benchmarkOp(op.name, op.fn);
+            benchmarkResults.operations[op.name] = stats;
+            log(`  ${op.name}: ${stats.mean.toFixed(2)}ms (p95: ${stats.p95.toFixed(2)}ms)`);
+          } catch (e) {
+            log(`  ❌ ${op.name}: ${e.message}`);
+          }
+
+          // Limpar memória
+          tf.disposeVariables();
+          await tf.nextFrame();
+        }
+
+        setProgress(100, 'Concluído!');
+        displayResults();
+        document.getElementById('results-section').style.display = 'block';
+        document.getElementById('export-section').style.display = 'block';
+
+        log('='.repeat(50));
+        log('✅ Benchmark concluído!');
+
+      } catch (e) {
+        log(`❌ Erro: ${e.message}`);
+      }
+
+      btn.disabled = false;
+    }
+
+    async function runQuickBenchmark() {
+      log('Benchmark rápido...');
+      setProgress(0, 'Matmul 512x512...');
+
+      const stats = await benchmarkOp('quick', () =>
+        tf.matMul(tf.randomNormal([512, 512]), tf.randomNormal([512, 512]))
+      );
+
+      log(`Matmul 512x512: ${stats.mean.toFixed(2)}ms`);
+      setProgress(100, `${stats.mean.toFixed(2)}ms`);
+    }
+
+    // Simulação de modelos
+    function simulateFaceExpression() {
+      return tf.tidy(() => {
+        let x = tf.randomNormal([1, 64, 64, 3]);
+        // Simplified CNN
+        x = tf.conv2d(x, tf.randomNormal([3, 3, 3, 32]), 2, 'same');
+        x = tf.relu(x);
+        x = tf.conv2d(x, tf.randomNormal([3, 3, 32, 64]), 2, 'same');
+        x = tf.relu(x);
+        x = tf.conv2d(x, tf.randomNormal([3, 3, 64, 128]), 2, 'same');
+        x = tf.relu(x);
+        x = tf.mean(x, [1, 2]);
+        x = tf.matMul(x, tf.randomNormal([128, 7]));
+        return tf.softmax(x);
+      });
+    }
+
+    function simulateFaceDetection() {
+      return tf.tidy(() => {
+        let x = tf.randomNormal([1, 416, 416, 3]);
+        // MobileNet-like
+        x = tf.conv2d(x, tf.randomNormal([3, 3, 3, 32]), 2, 'same');
+        x = tf.relu(x);
+        x = tf.depthwiseConv2d(x, tf.randomNormal([3, 3, 32, 1]), 1, 'same');
+        x = tf.relu(x);
+        x = tf.conv2d(x, tf.randomNormal([1, 1, 32, 64]), 1, 'same');
+        x = tf.relu(x);
+        x = tf.maxPool(x, 2, 2, 'same');
+        return x;
+      });
+    }
+
+    function displayResults() {
+      const tbody = document.querySelector('#results-table tbody');
+      tbody.innerHTML = '';
+
+      const comparison = document.getElementById('comparison');
+      comparison.innerHTML = '';
+
+      // Summary cards
+      const totalOps = Object.keys(benchmarkResults.operations).length;
+      const avgLatency = Object.values(benchmarkResults.operations)
+        .reduce((sum, op) => sum + op.mean, 0) / totalOps;
+
+      comparison.innerHTML = `
+        <div class="comparison-card">
+          <div class="metric">${tf.getBackend().toUpperCase()}</div>
+          <div>Backend</div>
+        </div>
+        <div class="comparison-card">
+          <div class="metric">${totalOps}</div>
+          <div>Operações testadas</div>
+        </div>
+        <div class="comparison-card">
+          <div class="metric">${avgLatency.toFixed(1)}ms</div>
+          <div>Latência média</div>
+        </div>
+      `;
+
+      // Table
+      for (const [name, stats] of Object.entries(benchmarkResults.operations)) {
+        const cpuRef = cpuBaseline?.operations?.[name];
+        let comparison = '-';
+        let compClass = '';
+
+        if (cpuRef) {
+          const speedup = cpuRef.mean / stats.mean;
+          if (speedup > 1) {
+            comparison = `${speedup.toFixed(1)}x mais rápido`;
+            compClass = 'faster';
+          } else {
+            comparison = `${(1/speedup).toFixed(1)}x mais lento`;
+            compClass = 'slower';
+          }
+        }
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${name}</td>
+            <td>${stats.mean.toFixed(2)}</td>
+            <td>${stats.p50.toFixed(2)}</td>
+            <td>${stats.p95.toFixed(2)}</td>
+            <td class="${compClass}">${comparison}</td>
+          </tr>
+        `;
+      }
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(benchmarkResults, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `benchmark-${tf.getBackend()}-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function copyToClipboard() {
+      navigator.clipboard.writeText(JSON.stringify(benchmarkResults, null, 2));
+      log('Resultados copiados para clipboard!');
+    }
+
+    // Iniciar
+    init();
+  </script>
+</body>
+</html>

@@ -28,4 +28,7 @@ export * from './blazeFace/index';
 export * from './adaFace/index';
 export * from './faceMesh/index';
 
+// KYC (Know Your Customer) face verification
+export * from './kyc/index';
+
 export const version = pkg.version as string;

@@ -23,4 +23,9 @@ export * from './NeuralNetwork';
 export * from './resizeResults';
 export * from './webgpu/index';
 
+// Modern detectors with automatic fallback
+export * from './blazeFace/index';
+export * from './adaFace/index';
+export * from './faceMesh/index';
+
 export const version = pkg.version as string;

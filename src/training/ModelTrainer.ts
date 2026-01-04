@@ -423,31 +423,67 @@ export class ModelTrainer<TNetParams> {
   }
 
   /**
-   * Save model weights.
+   * Save model weights with training metadata.
    */
-  public async saveWeights(path: string): Promise<void> {
-    const weights = this._model.serializeParams();
+  public async saveWeights(
+    path: string,
+    trainingLogs?: TrainingLogs
+  ): Promise<void> {
+    const serialized = await this._model.serializeWithMetadata({
+      epochs: trainingLogs?.epochs,
+      finalLoss: trainingLogs?.finalLoss
+    });
 
-    // In browser, save to IndexedDB
-    if (typeof indexedDB !== 'undefined') {
-      await tf.io.browserFiles([
-        new File([weights.buffer], `${path}.weights`)
-      ]);
+    const json = JSON.stringify(serialized);
+
+    // In browser, save to localStorage or download
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`faceapi-weights-${path}`, json);
     }
 
-    // In Node.js, save to file (requires fs)
+    // In Node.js, save to file
     if (typeof process !== 'undefined' && process.versions?.node) {
       const fs = await import('fs').catch(() => null);
       if (fs) {
-        fs.writeFileSync(`${path}.weights`, Buffer.from(weights.buffer));
+        fs.writeFileSync(`${path}.json`, json);
       }
     }
   }
 
   /**
+   * Load model weights from versioned format.
+   */
+  public async loadWeights(path: string): Promise<void> {
+    let json: string;
+
+    // In browser, load from localStorage
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`faceapi-weights-${path}`);
+      if (stored) {
+        json = stored;
+      } else {
+        throw new Error(`Weights not found: ${path}`);
+      }
+    } else if (typeof process !== 'undefined' && process.versions?.node) {
+      // In Node.js, load from file
+      const fs = await import('fs').catch(() => null);
+      if (fs && fs.existsSync(`${path}.json`)) {
+        json = fs.readFileSync(`${path}.json`, 'utf-8');
+      } else {
+        throw new Error(`Weights file not found: ${path}.json`);
+      }
+    } else {
+      throw new Error('Cannot load weights in this environment');
+    }
+
+    const data = JSON.parse(json);
+    this._model.loadFromSerialized(data);
+  }
+
+  /**
    * Get current model weights as Float32Array.
    */
-  public getWeights(): Float32Array {
+  public async getWeights(): Promise<Float32Array> {
     return this._model.serializeParams();
   }
 

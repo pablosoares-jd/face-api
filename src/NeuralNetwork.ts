@@ -5,6 +5,31 @@ import { getModelUris } from './common/getModelUris';
 import { loadWeightMap } from './dom/index';
 import { env } from './env/index';
 
+/**
+ * Serialized model weights with metadata.
+ */
+export interface SerializedWeights {
+  /** Format version for forward compatibility */
+  version: number;
+  /** Model name */
+  name: string;
+  /** Total number of parameters */
+  numParams: number;
+  /** Parameter shapes for validation */
+  shapes: Record<string, number[]>;
+  /** Serialized weights as base64 or array */
+  weights: string | number[];
+  /** Optional training metadata */
+  metadata?: {
+    trainedAt?: string;
+    epochs?: number;
+    finalLoss?: number;
+    framework?: string;
+  };
+  /** Checksum for integrity validation */
+  checksum?: string;
+}
+
 export abstract class NeuralNetwork<TNetParams> {
   constructor(name: string) {
     this._name = name;
@@ -54,12 +79,14 @@ export abstract class NeuralNetwork<TNetParams> {
     });
   }
 
-  public freeze() {
-    this.getTrainableParams().forEach(({ path, tensor: variable }) => {
-      const tensor = tf.tensor(variable.dataSync());
+  public async freeze(): Promise<void> {
+    const trainableParams = this.getTrainableParams();
+    for (const { path, tensor: variable } of trainableParams) {
+      const data = await variable.data();
+      const tensor = tf.tensor(data, variable.shape);
       variable.dispose();
       this.reassignParamFromPath(path, tensor);
-    });
+    }
   }
 
   public dispose(throwOnRedispose = true) {
@@ -72,12 +99,96 @@ export abstract class NeuralNetwork<TNetParams> {
     this._params = undefined;
   }
 
-  public serializeParams(): Float32Array {
-    return new Float32Array(
-      this.getParamList()
-        .map(({ tensor }) => Array.from(tensor.dataSync()) as number[])
-        .reduce((flat, arr) => flat.concat(arr)),
-    );
+  /**
+   * Serialize parameters to Float32Array (legacy format).
+   * @deprecated Use serializeWithMetadata() for versioned output
+   */
+  public async serializeParams(): Promise<Float32Array> {
+    const paramList = this.getParamList();
+    const arrays: number[] = [];
+
+    for (const { tensor } of paramList) {
+      const data = await tensor.data();
+      arrays.push(...Array.from(data));
+    }
+
+    return new Float32Array(arrays);
+  }
+
+  /**
+   * Serialize parameters with version and metadata.
+   */
+  public async serializeWithMetadata(metadata?: SerializedWeights['metadata']): Promise<SerializedWeights> {
+    const paramList = this.getParamList();
+    const shapes: Record<string, number[]> = {};
+    const arrays: number[] = [];
+
+    for (const { path, tensor } of paramList) {
+      shapes[path] = Array.from(tensor.shape);
+      const data = await tensor.data();
+      arrays.push(...Array.from(data));
+    }
+
+    // Simple checksum: sum of first 100 values
+    const checksum = arrays.slice(0, 100).reduce((a, b) => a + b, 0).toFixed(6);
+
+    return {
+      version: 1,
+      name: this._name,
+      numParams: arrays.length,
+      shapes,
+      weights: arrays,
+      metadata: {
+        ...metadata,
+        framework: 'face-api.js',
+        trainedAt: new Date().toISOString()
+      },
+      checksum
+    };
+  }
+
+  /**
+   * Load parameters from versioned format.
+   */
+  public loadFromSerialized(data: SerializedWeights): void {
+    if (data.version !== 1) {
+      throw new Error(`Unsupported weight format version: ${data.version}`);
+    }
+
+    if (data.name !== this._name) {
+      console.warn(`Model name mismatch: expected ${this._name}, got ${data.name}`);
+    }
+
+    const weights = Array.isArray(data.weights)
+      ? new Float32Array(data.weights)
+      : this._base64ToFloat32Array(data.weights);
+
+    // Validate checksum if present
+    if (data.checksum) {
+      const checksum = Array.from(weights).slice(0, 100).reduce((a, b) => a + b, 0).toFixed(6);
+      if (checksum !== data.checksum) {
+        throw new Error('Weight checksum mismatch - data may be corrupted');
+      }
+    }
+
+    this.extractWeights(weights);
+  }
+
+  /**
+   * Convert base64 string to Float32Array.
+   */
+  private _base64ToFloat32Array(base64: string): Float32Array {
+    if (typeof atob !== 'undefined') {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new Float32Array(bytes.buffer);
+    }
+    // Node.js
+    const buffer = Buffer.from(base64, 'base64');
+    return new Float32Array(buffer.buffer, buffer.byteOffset, buffer.length / 4);
   }
 
   public async load(weightsOrUrl: Float32Array | string | undefined): Promise<void> {

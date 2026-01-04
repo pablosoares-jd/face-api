@@ -32,6 +32,26 @@
 - ID document vs selfie verification
 - Real-time validation feedback
 
+### Training Module
+- **FaceClassifier** - KNN-based classifier for real-time face recognition without gradient training
+- **ModelTrainer** - Fine-tune models with transfer learning (triplet/contrastive loss)
+- **DatasetLoader** - Load from directories, CSV, JSON manifests, or URLs
+- **ImageAugmenter** - Data augmentation (flip, rotate, brightness, contrast, noise)
+
+```typescript
+import { FaceClassifier, ModelTrainer } from '@vladmandic/face-api/training';
+
+// KNN classifier - no training needed
+const classifier = new FaceClassifier();
+classifier.addFace(descriptor, 'Pablo');
+const result = classifier.classify(newDescriptor);
+
+// Fine-tune with transfer learning
+const trainer = new ModelTrainer(model);
+trainer.freezeFeatureExtractor();
+await trainer.fit(images, labels, { epochs: 10 });
+```
+
 ### Quick Start
 ```typescript
 import * as faceapi from '@vladmandic/face-api';

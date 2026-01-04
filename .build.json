@@ -159,6 +159,14 @@
         "input": "src/lite.ts",
         "output": "dist/face-api.lite.js",
         "external": ["@tensorflow"]
+      },
+      {
+        "name": "faceapi/browser/training",
+        "platform": "browser",
+        "format": "esm",
+        "input": "src/training/index.ts",
+        "output": "dist/face-api.training.js",
+        "external": ["@tensorflow"]
       }
     ]
   },

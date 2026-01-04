@@ -47,6 +47,12 @@
       "browser": "./dist/face-api.webgpu.js",
       "import": "./dist/face-api.webgpu.js",
       "default": "./dist/face-api.webgpu.js"
+    },
+    "./training": {
+      "types": "./types/face-api-training.d.ts",
+      "browser": "./dist/face-api.training.js",
+      "import": "./dist/face-api.training.js",
+      "default": "./dist/face-api.training.js"
     }
   },
   "author": "Vladimir Mandic <mandic00@live.com>",

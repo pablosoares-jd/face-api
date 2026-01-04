@@ -182,6 +182,8 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
 
   /**
    * Decode bounding boxes from network output.
+   * NOTE: Uses arraySync() for simplicity. For large batch sizes,
+   * consider refactoring to use pure tensor operations.
    */
   private decodeBoxes(rawBoxes: tf.Tensor2D, inputSize: number): tf.Tensor2D {
     return tf.tidy(() => {

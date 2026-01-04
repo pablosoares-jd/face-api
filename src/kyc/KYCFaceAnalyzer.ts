@@ -1,5 +1,3 @@
-import * as tf from '../../dist/tfjs.esm';
-
 import { FaceDetection } from '../classes/FaceDetection';
 import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
 import { TNetInput, toNetInput } from '../dom/index';
@@ -244,7 +242,6 @@ export class KYCFaceAnalyzer {
     );
 
     // Get landmarks
-    const netInput = await toNetInput(input);
     const landmarks = await this.landmarkNet.detectLandmarks(input) as FaceLandmarks68;
 
     // Get face descriptor
@@ -428,21 +425,26 @@ export class KYCFaceAnalyzer {
 
   /**
    * Calculate image quality metrics from the face region.
+   * TODO: Implement actual pixel analysis for production use.
    */
   private async calculateImageQuality(
     input: TNetInput,
     detection: FaceDetection,
   ): Promise<{ sharpness: number; brightness: number; contrast: number }> {
-    return tf.tidy(() => {
-      const netInput = toNetInput(input);
-      // For simplicity, return reasonable defaults
-      // In production, would analyze actual pixel values
-      return {
-        sharpness: 0.7,
-        brightness: 0.5,
-        contrast: 0.6,
-      };
-    });
+    // Use detection confidence as a proxy for image quality
+    // Higher confidence typically correlates with better image quality
+    const confidence = detection.score;
+
+    // Estimate sharpness based on detection confidence
+    // Well-lit, sharp images tend to have higher detection confidence
+    const sharpness = Math.min(1.0, 0.5 + confidence * 0.5);
+
+    // For brightness and contrast, use reasonable defaults
+    // A full implementation would analyze the face region pixels
+    const brightness = 0.5;
+    const contrast = 0.5 + confidence * 0.2;
+
+    return { sharpness, brightness, contrast };
   }
 
   /**

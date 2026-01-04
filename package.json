@@ -29,6 +29,12 @@
       "types": "./types/face-api.d.ts",
       "require": "./dist/face-api.node-wasm.js",
       "default": "./dist/face-api.node-wasm.js"
+    },
+    "./webgpu": {
+      "types": "./types/face-api.d.ts",
+      "browser": "./dist/face-api.webgpu.js",
+      "import": "./dist/face-api.webgpu.js",
+      "default": "./dist/face-api.webgpu.js"
     }
   },
   "author": "Vladimir Mandic <mandic00@live.com>",
@@ -69,7 +75,8 @@
     "face-description",
     "tensorflow",
     "tensorflowjs",
-    "tfjs"
+    "tfjs",
+    "webgpu"
   ],
   "devDependencies": {
     "@canvas/image": "^2.0.0",

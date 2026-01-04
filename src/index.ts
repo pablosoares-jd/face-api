@@ -21,8 +21,6 @@ export * from './tinyYolov2/index';
 export * from './euclideanDistance';
 export * from './NeuralNetwork';
 export * from './resizeResults';
+export * from './webgpu/index';
 
 export const version = pkg.version as string;
-
-// set webgl defaults
-// if (browser) tf.ENV.set('WEBGL_USE_SHAPES_UNIFORMS', true);

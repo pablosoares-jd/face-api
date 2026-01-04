@@ -71,6 +71,7 @@ async function main() {
   writeFile('export * from \'../types/face-api\';', 'dist/face-api.node.d.ts');
   writeFile('export * from \'../types/face-api\';', 'dist/face-api.node-gpu.d.ts');
   writeFile('export * from \'../types/face-api\';', 'dist/face-api.node-wasm.d.ts');
+  writeFile('export * from \'../types/face-api\';', 'dist/face-api.webgpu.d.ts');
   log.info('FaceAPI Build complete...');
 }
 

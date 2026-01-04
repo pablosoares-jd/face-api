@@ -93,6 +93,22 @@
         "external": ["@tensorflow"]
       },
       {
+        "name": "tfjs/browser/webgpu",
+        "platform": "browser",
+        "format": "esm",
+        "input": "src/tfjs/tf-webgpu.ts",
+        "output": "dist/tfjs.webgpu.js",
+        "external": ["@tensorflow"]
+      },
+      {
+        "name": "faceapi/browser/webgpu",
+        "platform": "browser",
+        "format": "esm",
+        "input": "src/index.ts",
+        "output": "dist/face-api.webgpu.js",
+        "external": ["@tensorflow"]
+      },
+      {
         "name": "tfjs/browser/esm/nobundle",
         "platform": "browser",
         "format": "esm",

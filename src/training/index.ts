@@ -92,6 +92,16 @@ export {
   PUBLIC_DATASETS
 } from './SpecializedTrainers';
 
+// Model Analysis and Baseline
+export {
+  ModelAnalyzer,
+  ParamStats,
+  ModelAnalysis,
+  BaselineMetrics,
+  ModelComparison,
+  QuickAnalysis
+} from './ModelAnalyzer';
+
 // Re-export tf for convenience (direct import to avoid circular dependency)
 import * as tf from '@tensorflow/tfjs';
 export { tf };

@@ -5,6 +5,7 @@ import { SsdMobilenetv1 } from '../ssdMobilenetv1/SsdMobilenetv1';
 import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
 import { FaceRecognitionNet } from '../faceRecognitionNet/FaceRecognitionNet';
 import { euclideanDistance } from '../euclideanDistance';
+import { ImageQualityAnalyzer } from './ImageQualityAnalyzer';
 
 /**
  * Source type for the image being analyzed.
@@ -204,6 +205,7 @@ export class KYCDocumentAnalyzer {
   private detector: SsdMobilenetv1;
   private landmarkNet: FaceLandmark68Net;
   private recognitionNet: FaceRecognitionNet;
+  private qualityAnalyzer: ImageQualityAnalyzer;
   private config: DocumentKYCConfig;
   private _isLoaded = false;
 
@@ -211,6 +213,7 @@ export class KYCDocumentAnalyzer {
     this.detector = new SsdMobilenetv1();
     this.landmarkNet = new FaceLandmark68Net();
     this.recognitionNet = new FaceRecognitionNet();
+    this.qualityAnalyzer = new ImageQualityAnalyzer();
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -441,6 +444,7 @@ export class KYCDocumentAnalyzer {
 
   /**
    * Calculate quality metrics for an image.
+   * Uses real pixel analysis with Laplacian variance for sharpness.
    */
   private async calculateQuality(
     input: TNetInput,
@@ -467,15 +471,32 @@ export class KYCDocumentAnalyzer {
       frontalScore = 1 - (yawPenalty * 0.5 + pitchPenalty * 0.5);
     }
 
-    // For documents, estimate sharpness based on detection confidence
-    // Real implementation would analyze pixel variance
-    const baseSharpness = sourceType === 'document' ? 0.5 : 0.7;
-    const sharpness = baseSharpness * (0.5 + detection.score * 0.5);
+    // Use real pixel analysis
+    const qualityResult = await this.qualityAnalyzer.analyze(input, detection);
+
+    // Apply source-type adjustments for expected quality
+    let sharpness = qualityResult.sharpness;
+    let brightness = qualityResult.brightness;
+    let contrast = qualityResult.contrast;
+
+    // Documents are expected to have lower quality, so we adjust expectations
+    if (sourceType === 'document' && qualityResult.faceRegionExtracted) {
+      // Boost sharpness score for documents (they're often scanned)
+      sharpness = Math.min(1, sharpness * 1.2);
+    }
+
+    // Fallback if analysis failed
+    if (!qualityResult.faceRegionExtracted) {
+      const baseSharpness = sourceType === 'document' ? 0.5 : 0.7;
+      sharpness = baseSharpness * (0.5 + detection.score * 0.5);
+      brightness = 0.5;
+      contrast = 0.5 + detection.score * 0.2;
+    }
 
     return {
       sharpness,
-      brightness: 0.5, // Would analyze actual pixels
-      contrast: 0.6,   // Would analyze actual pixels
+      brightness,
+      contrast,
       faceSize,
       frontalScore,
       overallConfidence: detection.score,

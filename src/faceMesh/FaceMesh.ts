@@ -42,8 +42,6 @@ import { NetParams } from './types';
 export class FaceMesh extends NeuralNetwork<NetParams> {
   private _fallbackNet: FaceLandmark68Net | null = null;
 
-  private _options: FaceMeshOptions = new FaceMeshOptions();
-
   constructor() {
     super('FaceMesh');
   }
@@ -170,6 +168,8 @@ export class FaceMesh extends NeuralNetwork<NetParams> {
 
   /**
    * Detect facial landmarks.
+   * @param input Input image
+   * @param options Detection options including refineLandmarks for iris detection
    */
   public async detectLandmarks(
     input: TNetInput,
@@ -193,16 +193,24 @@ export class FaceMesh extends NeuralNetwork<NetParams> {
       const landmarkData = await landmarkTensor.array() as number[][];
 
       const landmarksForBatch = landmarkData.map((data, batchIdx) => {
-        const numLandmarks = FACEMESH_LANDMARK_COUNTS.BASE;
-        const points: Point[] = new Array(numLandmarks);
-        const zValues: number[] = new Array(numLandmarks);
+        const baseLandmarks = FACEMESH_LANDMARK_COUNTS.BASE;
+        const points: Point[] = new Array(baseLandmarks);
+        const zValues: number[] = new Array(baseLandmarks);
 
-        for (let i = 0; i < numLandmarks; i++) {
+        // Extract base 468 landmarks
+        for (let i = 0; i < baseLandmarks; i++) {
           points[i] = new Point(
             data[i * 3] as number,     // x
             data[i * 3 + 1] as number, // y
           );
           zValues[i] = data[i * 3 + 2] as number; // z
+        }
+
+        // If refinement is enabled, estimate iris landmarks
+        if (opts.refineLandmarks) {
+          const irisLandmarks = this.estimateIrisLandmarks(points);
+          points.push(...irisLandmarks.points);
+          zValues.push(...irisLandmarks.zValues);
         }
 
         return new FaceMeshLandmarks(
@@ -219,6 +227,75 @@ export class FaceMesh extends NeuralNetwork<NetParams> {
     } finally {
       landmarkTensor.dispose();
     }
+  }
+
+  /**
+   * Estimate iris landmarks (468-477) from eye landmarks.
+   * This provides approximate iris positions when a refined model is not available.
+   */
+  private estimateIrisLandmarks(baseLandmarks: Point[]): { points: Point[]; zValues: number[] } {
+    const points: Point[] = [];
+    const zValues: number[] = [];
+
+    // Left eye key landmarks for iris estimation
+    // Indices: 33 (outer), 133 (inner), 159 (upper), 145 (lower)
+    const leftOuter = baseLandmarks[33];
+    const leftInner = baseLandmarks[133];
+    const leftUpper = baseLandmarks[159];
+    const leftLower = baseLandmarks[145];
+
+    // Right eye key landmarks
+    // Indices: 362 (outer), 263 (inner), 386 (upper), 374 (lower)
+    const rightOuter = baseLandmarks[362];
+    const rightInner = baseLandmarks[263];
+    const rightUpper = baseLandmarks[386];
+    const rightLower = baseLandmarks[374];
+
+    if (leftOuter && leftInner && leftUpper && leftLower) {
+      // Left iris center (index 468)
+      const leftCenterX = (leftOuter.x + leftInner.x) / 2;
+      const leftCenterY = (leftUpper.y + leftLower.y) / 2;
+      const leftRadiusX = Math.abs(leftInner.x - leftOuter.x) / 4;
+      const leftRadiusY = Math.abs(leftLower.y - leftUpper.y) / 3;
+
+      // Left iris landmarks (468-472): center, left, top, right, bottom
+      points.push(new Point(leftCenterX, leftCenterY)); // 468: center
+      points.push(new Point(leftCenterX - leftRadiusX, leftCenterY)); // 469: left
+      points.push(new Point(leftCenterX, leftCenterY - leftRadiusY)); // 470: top
+      points.push(new Point(leftCenterX + leftRadiusX, leftCenterY)); // 471: right
+      points.push(new Point(leftCenterX, leftCenterY + leftRadiusY)); // 472: bottom
+      zValues.push(0, 0, 0, 0, 0);
+    } else {
+      // Fallback: add placeholder points
+      for (let i = 0; i < 5; i++) {
+        points.push(new Point(0, 0));
+        zValues.push(0);
+      }
+    }
+
+    if (rightOuter && rightInner && rightUpper && rightLower) {
+      // Right iris center (index 473)
+      const rightCenterX = (rightOuter.x + rightInner.x) / 2;
+      const rightCenterY = (rightUpper.y + rightLower.y) / 2;
+      const rightRadiusX = Math.abs(rightInner.x - rightOuter.x) / 4;
+      const rightRadiusY = Math.abs(rightLower.y - rightUpper.y) / 3;
+
+      // Right iris landmarks (473-477): center, left, top, right, bottom
+      points.push(new Point(rightCenterX, rightCenterY)); // 473: center
+      points.push(new Point(rightCenterX - rightRadiusX, rightCenterY)); // 474: left
+      points.push(new Point(rightCenterX, rightCenterY - rightRadiusY)); // 475: top
+      points.push(new Point(rightCenterX + rightRadiusX, rightCenterY)); // 476: right
+      points.push(new Point(rightCenterX, rightCenterY + rightRadiusY)); // 477: bottom
+      zValues.push(0, 0, 0, 0, 0);
+    } else {
+      // Fallback: add placeholder points
+      for (let i = 0; i < 5; i++) {
+        points.push(new Point(0, 0));
+        zValues.push(0);
+      }
+    }
+
+    return { points, zValues };
   }
 
   /**

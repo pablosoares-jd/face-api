@@ -218,19 +218,61 @@ export class AdaFace extends NeuralNetwork<NetParams> {
     const descriptorTensors = tf.tidy(() => tf.unstack(this.forwardInput(netInput)));
 
     try {
-      const descriptors = await Promise.all(
+      const adaFaceDescriptors = await Promise.all(
         descriptorTensors.map((t: tf.Tensor) => t.data()),
       ) as Float32Array[];
 
-      // If fallback enabled and we have it loaded, could blend results
-      if (opts.enableFallback && this._fallbackNet?.isLoaded) {
-        // Future: implement quality-based blending
+      // Blend with FaceNet if enabled and both models are loaded
+      if (opts.blendDescriptors && this._fallbackNet?.isLoaded) {
+        const faceNetResult = await this._fallbackNet.computeFaceDescriptor(input);
+        const faceNetDescriptors = Array.isArray(faceNetResult) ? faceNetResult : [faceNetResult];
+
+        const blendedDescriptors = adaFaceDescriptors.map((adaDesc, idx) => {
+          const faceNetDesc = faceNetDescriptors[idx];
+          if (!faceNetDesc) return adaDesc;
+          return this.blendDescriptors(adaDesc, faceNetDesc, opts.blendWeight);
+        });
+
+        return netInput.isBatchInput ? blendedDescriptors : blendedDescriptors[0]!;
       }
 
-      return netInput.isBatchInput ? descriptors : descriptors[0]!;
+      return netInput.isBatchInput ? adaFaceDescriptors : adaFaceDescriptors[0]!;
     } finally {
       descriptorTensors.forEach((t: tf.Tensor) => t.dispose());
     }
+  }
+
+  /**
+   * Blend two face descriptors with weighted average.
+   * Handles different descriptor sizes by truncating to minimum length.
+   */
+  private blendDescriptors(
+    desc1: Float32Array,
+    desc2: Float32Array,
+    weight1: number,
+  ): Float32Array {
+    const weight2 = 1 - weight1;
+    const minLen = Math.min(desc1.length, desc2.length);
+    const blended = new Float32Array(minLen);
+
+    for (let i = 0; i < minLen; i++) {
+      blended[i] = (desc1[i] ?? 0) * weight1 + (desc2[i] ?? 0) * weight2;
+    }
+
+    // L2 normalize the blended result
+    let norm = 0;
+    for (let i = 0; i < minLen; i++) {
+      norm += (blended[i] ?? 0) * (blended[i] ?? 0);
+    }
+    norm = Math.sqrt(norm);
+
+    if (norm > 0) {
+      for (let i = 0; i < minLen; i++) {
+        blended[i] = (blended[i] ?? 0) / norm;
+      }
+    }
+
+    return blended;
   }
 
   public async forward(input: TNetInput): Promise<tf.Tensor2D> {

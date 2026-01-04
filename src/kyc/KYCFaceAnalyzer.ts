@@ -5,6 +5,7 @@ import { SsdMobilenetv1 } from '../ssdMobilenetv1/SsdMobilenetv1';
 import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
 import { FaceRecognitionNet } from '../faceRecognitionNet/FaceRecognitionNet';
 import { euclideanDistance } from '../euclideanDistance';
+import { ImageQualityAnalyzer } from './ImageQualityAnalyzer';
 
 /**
  * Face quality metrics for KYC validation.
@@ -166,6 +167,7 @@ export class KYCFaceAnalyzer {
   private detector: SsdMobilenetv1;
   private landmarkNet: FaceLandmark68Net;
   private recognitionNet: FaceRecognitionNet;
+  private qualityAnalyzer: ImageQualityAnalyzer;
   private config: KYCConfig;
   private _isLoaded = false;
 
@@ -173,6 +175,7 @@ export class KYCFaceAnalyzer {
     this.detector = new SsdMobilenetv1();
     this.landmarkNet = new FaceLandmark68Net();
     this.recognitionNet = new FaceRecognitionNet();
+    this.qualityAnalyzer = new ImageQualityAnalyzer();
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -425,26 +428,30 @@ export class KYCFaceAnalyzer {
 
   /**
    * Calculate image quality metrics from the face region.
-   * TODO: Implement actual pixel analysis for production use.
+   * Uses real pixel analysis with Laplacian variance for sharpness,
+   * mean intensity for brightness, and standard deviation for contrast.
    */
   private async calculateImageQuality(
     input: TNetInput,
     detection: FaceDetection,
   ): Promise<{ sharpness: number; brightness: number; contrast: number }> {
-    // Use detection confidence as a proxy for image quality
-    // Higher confidence typically correlates with better image quality
-    const confidence = detection.score;
+    const result = await this.qualityAnalyzer.analyze(input, detection);
 
-    // Estimate sharpness based on detection confidence
-    // Well-lit, sharp images tend to have higher detection confidence
-    const sharpness = Math.min(1.0, 0.5 + confidence * 0.5);
+    // If face region extraction failed, use detection confidence as fallback
+    if (!result.faceRegionExtracted) {
+      const confidence = detection.score;
+      return {
+        sharpness: Math.min(1.0, 0.5 + confidence * 0.5),
+        brightness: 0.5,
+        contrast: 0.5 + confidence * 0.2,
+      };
+    }
 
-    // For brightness and contrast, use reasonable defaults
-    // A full implementation would analyze the face region pixels
-    const brightness = 0.5;
-    const contrast = 0.5 + confidence * 0.2;
-
-    return { sharpness, brightness, contrast };
+    return {
+      sharpness: result.sharpness,
+      brightness: result.brightness,
+      contrast: result.contrast,
+    };
   }
 
   /**

@@ -175,11 +175,11 @@ export class Box<BoxType = any> implements IBoundingBox, IRect {
       ey = imageHeight;
     }
     if (x < 1) {
-      edy = 2 - x;
+      dx = 2 - x;
       x = 1;
     }
     if (y < 1) {
-      edy = 2 - y;
+      dy = 2 - y;
       y = 1;
     }
 

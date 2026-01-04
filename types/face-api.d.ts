@@ -1223,7 +1223,7 @@ export declare function extractFaceTensors(imageTensor: tf.Tensor3D | tf.Tensor4
 
 export declare const FACE_EXPRESSION_LABELS: readonly ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised"];
 
-export declare class FaceDetection extends ObjectDetection implements IFaceDetecion {
+export declare class FaceDetection extends ObjectDetection implements IFaceDetection {
     constructor(score: number, relativeBox: Rect, imageDims: IDimensions);
     forSize(width: number, height: number): FaceDetection;
 }
@@ -1749,7 +1749,7 @@ declare interface IDrawTextFieldOptions {
     padding?: number;
 }
 
-export declare interface IFaceDetecion {
+export declare interface IFaceDetection {
     score: number;
     box: Box;
 }
@@ -2614,7 +2614,7 @@ export declare abstract class NeuralNetwork<TNetParams> {
     constructor(name: string);
     protected _params: TNetParams | undefined;
     protected _paramMappings: ParamMapping[];
-    _name: any;
+    _name: string;
     get params(): TNetParams | undefined;
     get paramMappings(): ParamMapping[];
     get isLoaded(): boolean;

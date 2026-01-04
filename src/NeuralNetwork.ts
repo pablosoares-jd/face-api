@@ -14,7 +14,7 @@ export abstract class NeuralNetwork<TNetParams> {
 
   protected _paramMappings: ParamMapping[] = [];
 
-  public _name: any;
+  public _name: string;
 
   public get params(): TNetParams | undefined { return this._params; }
 

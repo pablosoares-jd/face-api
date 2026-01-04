@@ -247,11 +247,11 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
   /**
    * Decoded detection result with box and keypoints.
    */
-  private decodeDetections(
+  private async decodeDetections(
     rawBoxes: tf.Tensor2D,
     inputSize: number,
-  ): { boxes: number[][]; keypoints: BlazeFaceKeypoints[] } {
-    const boxesData = rawBoxes.arraySync() as number[][];
+  ): Promise<{ boxes: number[][]; keypoints: BlazeFaceKeypoints[] }> {
+    const boxesData = await rawBoxes.array() as number[][];
     const decodedBoxes: number[][] = [];
     const decodedKeypoints: BlazeFaceKeypoints[] = [];
 
@@ -344,7 +344,7 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
       const scoresData = await scores.data();
 
       // Decode detections with keypoints
-      const { boxes: decodedBoxes, keypoints: decodedKeypoints } = this.decodeDetections(rawBoxes, opts.inputSize);
+      const { boxes: decodedBoxes, keypoints: decodedKeypoints } = await this.decodeDetections(rawBoxes, opts.inputSize);
 
       // Non-max suppression
       const selectedIndices = this.nonMaxSuppression(

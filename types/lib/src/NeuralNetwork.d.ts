@@ -4,7 +4,7 @@ export declare abstract class NeuralNetwork<TNetParams> {
     constructor(name: string);
     protected _params: TNetParams | undefined;
     protected _paramMappings: ParamMapping[];
-    _name: any;
+    _name: string;
     get params(): TNetParams | undefined;
     get paramMappings(): ParamMapping[];
     get isLoaded(): boolean;

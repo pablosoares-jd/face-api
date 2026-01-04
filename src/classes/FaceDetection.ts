@@ -3,12 +3,12 @@ import { IDimensions } from './Dimensions';
 import { ObjectDetection } from './ObjectDetection';
 import { Rect } from './Rect';
 
-export interface IFaceDetecion {
+export interface IFaceDetection {
   score: number
   box: Box
 }
 
-export class FaceDetection extends ObjectDetection implements IFaceDetecion {
+export class FaceDetection extends ObjectDetection implements IFaceDetection {
   constructor(
     score: number,
     relativeBox: Rect,

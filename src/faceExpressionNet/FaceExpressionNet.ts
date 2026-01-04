@@ -22,19 +22,26 @@ export class FaceExpressionNet extends FaceProcessor<FaceFeatureExtractorParams>
   public async predictExpressions(input: TNetInput) {
     const netInput = await toNetInput(input);
     const out = await this.forwardInput(netInput);
-    const probabilitesByBatch = await Promise.all(tf.unstack(out).map(async (t) => {
-      const data = t.dataSync();
-      t.dispose();
-      return data;
-    }));
-    out.dispose();
 
-    const predictionsByBatch = probabilitesByBatch
-      .map((probabilites) => new FaceExpressions(probabilites as Float32Array));
+    // Unstack inside tidy to avoid memory leaks if Promise.all fails
+    const tensors = tf.unstack(out);
 
-    return netInput.isBatchInput
-      ? predictionsByBatch
-      : predictionsByBatch[0];
+    try {
+      // Use async data() instead of blocking dataSync() for better GPU pipelining
+      const dataPromises = tensors.map((t) => t.data());
+      const probabilitesByBatch = await Promise.all(dataPromises);
+
+      const predictionsByBatch = probabilitesByBatch
+        .map((probabilites) => new FaceExpressions(probabilites as Float32Array));
+
+      return netInput.isBatchInput
+        ? predictionsByBatch
+        : predictionsByBatch[0];
+    } finally {
+      // Ensure tensors are disposed even if an error occurs
+      tensors.forEach((t) => t.dispose());
+      out.dispose();
+    }
   }
 
   protected getDefaultModelName(): string {

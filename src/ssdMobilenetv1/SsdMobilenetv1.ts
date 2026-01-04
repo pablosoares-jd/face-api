@@ -57,7 +57,8 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
 
       const iouThreshold = 0.5;
       const scoresArray = Array.from(scoresData);
-      const indices = nonMaxSuppression(boxes, scoresArray, maxResults, iouThreshold, minConfidence);
+      // Pass pre-fetched boxesData array to avoid GPU blocking in NMS
+      const indices = nonMaxSuppression(boxesData, scoresArray, maxResults, iouThreshold, minConfidence);
 
       const reshapedDims = netInput.getReshapedInputDimensions(0);
       const inputSize = netInput.inputSize as number;

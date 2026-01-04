@@ -1,13 +1,20 @@
 import * as tf from '../../dist/tfjs.esm';
 
+/**
+ * Normalize an image tensor by subtracting mean RGB values.
+ * Optimized to use a single tensor operation with broadcasting.
+ *
+ * @param x Input tensor of shape [batch, height, width, 3]
+ * @param meanRgb Array of [R, G, B] mean values to subtract
+ * @returns Normalized tensor with same shape as input
+ */
 export function normalize(x: tf.Tensor4D, meanRgb: number[]): tf.Tensor4D {
   return tf.tidy(() => {
-    const [r, g, b] = meanRgb;
-    const avg_r = tf.fill([...x.shape.slice(0, 3), 1], r, 'float32');
-    const avg_g = tf.fill([...x.shape.slice(0, 3), 1], g, 'float32');
-    const avg_b = tf.fill([...x.shape.slice(0, 3), 1], b, 'float32');
-    const avg_rgb = tf.concat([avg_r, avg_g, avg_b], 3);
+    // Create a single [1, 1, 1, 3] tensor that broadcasts across the image
+    // This is more efficient than creating 3 separate fill tensors and concatenating
+    const meanTensor = tf.tensor1d(meanRgb, 'float32').reshape([1, 1, 1, 3]);
 
-    return tf.sub(x, avg_rgb);
+    // Broadcasting handles the rest - no need for tf.fill or tf.concat
+    return tf.sub(x, meanTensor) as tf.Tensor4D;
   });
 }

@@ -56,28 +56,37 @@ export class AgeGenderNet extends NeuralNetwork<NetParams> {
 
     const ages = tf.unstack(out.age);
     const genders = tf.unstack(out.gender);
-    const ageAndGenderTensors = ages.map((ageTensor, i) => ({
-      ageTensor,
-      genderTensor: genders[i],
-    }));
 
-    const predictionsByBatch = await Promise.all(
-      ageAndGenderTensors.map(async ({ ageTensor, genderTensor }) => {
-        const age = (ageTensor.dataSync())[0];
-        const probMale = (genderTensor.dataSync())[0];
+    try {
+      // Use async data() instead of blocking dataSync() for better GPU pipelining
+      const ageDataPromises = ages.map((t) => t.data());
+      const genderDataPromises = genders.map((t) => t.data());
+
+      const [ageDataArrays, genderDataArrays] = await Promise.all([
+        Promise.all(ageDataPromises),
+        Promise.all(genderDataPromises),
+      ]);
+
+      const predictionsByBatch = ageDataArrays.map((ageData, i) => {
+        const age = ageData[0];
+        const probMale = genderDataArrays[i][0];
         const isMale = probMale > 0.5;
         const gender = isMale ? Gender.MALE : Gender.FEMALE;
         const genderProbability = isMale ? probMale : (1 - probMale);
 
-        ageTensor.dispose();
-        genderTensor.dispose();
         return { age, gender, genderProbability };
-      }),
-    );
-    out.age.dispose();
-    out.gender.dispose();
+      });
 
-    return netInput.isBatchInput ? predictionsByBatch as AgeAndGenderPrediction[] : predictionsByBatch[0] as AgeAndGenderPrediction;
+      return netInput.isBatchInput
+        ? predictionsByBatch as AgeAndGenderPrediction[]
+        : predictionsByBatch[0] as AgeAndGenderPrediction;
+    } finally {
+      // Ensure tensors are disposed even if an error occurs
+      ages.forEach((t) => t.dispose());
+      genders.forEach((t) => t.dispose());
+      out.age.dispose();
+      out.gender.dispose();
+    }
   }
 
   protected getDefaultModelName(): string {

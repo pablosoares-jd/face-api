@@ -3,7 +3,7 @@ import * as tf from '../../dist/tfjs.esm';
 import { ParamMapping } from '../common/types';
 import {
   NetParams,
-  ConvBlockParams,
+  FaceMeshConvBlockParams,
   ResidualBlockParams,
   EncoderParams,
   DecoderParams,
@@ -14,7 +14,7 @@ function extractConvBlockParams(
   weightMap: tf.NamedTensorMap,
   prefix: string,
   paramMappings: ParamMapping[],
-): ConvBlockParams {
+): FaceMeshConvBlockParams {
   const weights = weightMap[`${prefix}/weights`] as tf.Tensor4D;
   const bn_mean = weightMap[`${prefix}/bn/mean`] as tf.Tensor1D;
   const bn_variance = weightMap[`${prefix}/bn/variance`] as tf.Tensor1D;

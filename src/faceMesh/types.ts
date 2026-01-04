@@ -1,9 +1,9 @@
 import * as tf from '../../dist/tfjs.esm';
 
 /**
- * Convolution block parameters.
+ * FaceMesh convolution block parameters.
  */
-export interface ConvBlockParams {
+export interface FaceMeshConvBlockParams {
   weights: tf.Tensor4D;
   bn_mean: tf.Tensor1D;
   bn_variance: tf.Tensor1D;
@@ -15,26 +15,26 @@ export interface ConvBlockParams {
  * Residual block parameters.
  */
 export interface ResidualBlockParams {
-  conv1: ConvBlockParams;
-  conv2: ConvBlockParams;
+  conv1: FaceMeshConvBlockParams;
+  conv2: FaceMeshConvBlockParams;
 }
 
 /**
  * Encoder parameters.
  */
 export interface EncoderParams {
-  conv1: ConvBlockParams;
-  conv2: ConvBlockParams;
-  conv3: ConvBlockParams;
-  conv4: ConvBlockParams;
-  conv5: ConvBlockParams;
+  conv1: FaceMeshConvBlockParams;
+  conv2: FaceMeshConvBlockParams;
+  conv3: FaceMeshConvBlockParams;
+  conv4: FaceMeshConvBlockParams;
+  conv5: FaceMeshConvBlockParams;
 }
 
 /**
  * Decoder parameters.
  */
 export interface DecoderParams {
-  conv1: ConvBlockParams;
+  conv1: FaceMeshConvBlockParams;
 }
 
 /**

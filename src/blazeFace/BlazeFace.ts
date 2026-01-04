@@ -64,9 +64,9 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
     const anchors: Anchor[] = [];
 
     for (let i = 0; i < BlazeFace.STRIDES.length; i++) {
-      const stride = BlazeFace.STRIDES[i];
+      const stride = BlazeFace.STRIDES[i]!;
       const gridSize = Math.ceil(inputSize / stride);
-      const numAnchors = BlazeFace.ANCHORS_PER_STRIDE[i];
+      const numAnchors = BlazeFace.ANCHORS_PER_STRIDE[i]!;
 
       for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {

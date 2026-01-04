@@ -215,7 +215,7 @@ export class FaceMesh extends NeuralNetwork<NetParams> {
         );
       });
 
-      return netInput.isBatchInput ? landmarksForBatch : landmarksForBatch[0];
+      return netInput.isBatchInput ? landmarksForBatch : landmarksForBatch[0]!;
     } finally {
       landmarkTensor.dispose();
     }

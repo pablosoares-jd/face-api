@@ -227,7 +227,7 @@ export class AdaFace extends NeuralNetwork<NetParams> {
         // Future: implement quality-based blending
       }
 
-      return netInput.isBatchInput ? descriptors : descriptors[0];
+      return netInput.isBatchInput ? descriptors : descriptors[0]!;
     } finally {
       descriptorTensors.forEach((t: tf.Tensor) => t.dispose());
     }

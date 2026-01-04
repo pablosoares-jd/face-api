@@ -32,10 +32,13 @@ export class FaceMeshLandmarks extends FaceLandmarks {
    */
   public getPosition3D(idx: number): { x: number; y: number; z: number } {
     const pos = this.positions[idx];
+    if (!pos) {
+      return { x: 0, y: 0, z: 0 };
+    }
     return {
       x: pos.x,
       y: pos.y,
-      z: this._zValues[idx],
+      z: this._zValues[idx] ?? 0,
     };
   }
 
@@ -46,8 +49,17 @@ export class FaceMeshLandmarks extends FaceLandmarks {
     return this.positions.map((pos, idx) => ({
       x: pos.x,
       y: pos.y,
-      z: this._zValues[idx],
+      z: this._zValues[idx] ?? 0,
     }));
+  }
+
+  /**
+   * Helper to filter undefined values from Point arrays.
+   */
+  private filterPoints(indices: number[]): Point[] {
+    return indices
+      .map((i) => this.positions[i])
+      .filter((p): p is Point => p !== undefined);
   }
 
   /**
@@ -60,7 +72,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
       397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
       172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109,
     ];
-    return faceOvalIndices.map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints(faceOvalIndices);
   }
 
   /**
@@ -70,7 +82,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
     const leftEyeIndices = [
       33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246,
     ];
-    return leftEyeIndices.map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints(leftEyeIndices);
   }
 
   /**
@@ -80,7 +92,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
     const rightEyeIndices = [
       362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398,
     ];
-    return rightEyeIndices.map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints(rightEyeIndices);
   }
 
   /**
@@ -88,7 +100,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
    */
   public getLeftEyebrow(): Point[] {
     const leftEyebrowIndices = [70, 63, 105, 66, 107, 55, 65, 52, 53, 46];
-    return leftEyebrowIndices.map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints(leftEyebrowIndices);
   }
 
   /**
@@ -96,7 +108,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
    */
   public getRightEyebrow(): Point[] {
     const rightEyebrowIndices = [300, 293, 334, 296, 336, 285, 295, 282, 283, 276];
-    return rightEyebrowIndices.map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints(rightEyebrowIndices);
   }
 
   /**
@@ -107,7 +119,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
       1, 2, 98, 327, 4, 5, 6, 168, 195, 197, 419, 351, 412, 343,
       437, 420, 456, 248, 281, 275, 274, 354, 370, 94, 19,
     ];
-    return noseIndices.map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints(noseIndices);
   }
 
   /**
@@ -120,7 +132,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
       // Inner lips
       78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308, 415, 310, 311, 312, 13, 82, 81, 80, 191,
     ];
-    return lipsIndices.map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints(lipsIndices);
   }
 
   /**
@@ -131,7 +143,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
     if (this.positions.length <= FACEMESH_LANDMARK_COUNTS.BASE) {
       return [];
     }
-    return [468, 469, 470, 471, 472].map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints([468, 469, 470, 471, 472]);
   }
 
   /**
@@ -142,7 +154,7 @@ export class FaceMeshLandmarks extends FaceLandmarks {
     if (this.positions.length <= FACEMESH_LANDMARK_COUNTS.BASE) {
       return [];
     }
-    return [473, 474, 475, 476, 477].map((i) => this.positions[i]).filter(Boolean);
+    return this.filterPoints([473, 474, 475, 476, 477]);
   }
 
   /**

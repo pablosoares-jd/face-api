@@ -24,6 +24,6 @@ export declare const version: {
 
 export { io, browser, image } from '@tensorflow/tfjs-core';
 export { tensor, tidy, softmax, unstack, relu, add, conv2d, cast, zeros, concat, avgPool, stack, fill, transpose, tensor1d, tensor2d, tensor3d, tensor4d, maxPool, matMul, mul, sub, scalar } from '@tensorflow/tfjs-core';
-export { div, pad, slice, reshape, slice3d, expandDims, depthwiseConv2d, separableConv2d, sigmoid, exp, tile, batchNorm, clipByValue } from '@tensorflow/tfjs-core';
+export { div, pad, slice, reshape, slice3d, expandDims, depthwiseConv2d, separableConv2d, sigmoid, exp, tile, batchNorm, clipByValue, sqrt, sum, square, mean } from '@tensorflow/tfjs-core';
 export { ENV, Variable, Tensor, TensorLike, Rank, Tensor1D, Tensor2D, Tensor3D, Tensor4D, Tensor5D, NamedTensorMap } from '@tensorflow/tfjs-core';
 export { setBackend, getBackend, ready, registerBackend } from '@tensorflow/tfjs-core';

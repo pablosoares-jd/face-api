@@ -183,51 +183,83 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       return [boxes, scores, classScores];
     });
 
-    const results: TinyYolov2ExtractBoxesResult[] = [];
-    const scoresData = await scoresTensor.array() as number[][][][];
-    const boxesData = await boxesTensor.array() as number[][][][];
-    for (let row = 0; row < numCells; row++) {
-      for (let col = 0; col < numCells; col++) {
-        for (let anchor = 0; anchor < numBoxes; anchor++) {
-          const score = sigmoid(scoresData[row][col][anchor][0]);
-          if (!scoreThreshold || score > scoreThreshold) {
-            const ctX = ((col + sigmoid(boxesData[row][col][anchor][0])) / numCells) * correctionFactorX;
-            const ctY = ((row + sigmoid(boxesData[row][col][anchor][1])) / numCells) * correctionFactorY;
-            const widthLocal = ((Math.exp(boxesData[row][col][anchor][2]) * this.config.anchors[anchor].x) / numCells) * correctionFactorX;
-            const heightLocal = ((Math.exp(boxesData[row][col][anchor][3]) * this.config.anchors[anchor].y) / numCells) * correctionFactorY;
-            const x = (ctX - (widthLocal / 2));
-            const y = (ctY - (heightLocal / 2));
-            const pos = { row, col, anchor };
-            const { classScore, label } = this.withClassScores
-              ? await this.extractPredictedClass(classScoresTensor as tf.Tensor4D, pos)
-              : { classScore: 1, label: 0 };
-            results.push({
-              box: new BoundingBox(x, y, x + widthLocal, y + heightLocal),
-              score,
-              classScore: score * classScore,
-              label,
-              ...pos,
-            });
+    try {
+      // Fetch all data at once instead of inside loops - major performance improvement
+      const [scoresData, boxesData, classScoresData] = await Promise.all([
+        scoresTensor.array() as Promise<number[][][][]>,
+        boxesTensor.array() as Promise<number[][][][]>,
+        this.withClassScores ? (classScoresTensor as tf.Tensor4D).array() as Promise<number[][][][]> : Promise.resolve(null),
+      ]);
+
+      const results: TinyYolov2ExtractBoxesResult[] = [];
+
+      // Process all cells without async/await inside loops
+      for (let row = 0; row < numCells; row++) {
+        for (let col = 0; col < numCells; col++) {
+          for (let anchor = 0; anchor < numBoxes; anchor++) {
+            const score = sigmoid(scoresData[row][col][anchor][0]);
+
+            if (!scoreThreshold || score > scoreThreshold) {
+              const boxData = boxesData[row][col][anchor];
+              const ctX = ((col + sigmoid(boxData[0])) / numCells) * correctionFactorX;
+              const ctY = ((row + sigmoid(boxData[1])) / numCells) * correctionFactorY;
+              const widthLocal = ((Math.exp(boxData[2]) * this.config.anchors[anchor].x) / numCells) * correctionFactorX;
+              const heightLocal = ((Math.exp(boxData[3]) * this.config.anchors[anchor].y) / numCells) * correctionFactorY;
+              const x = ctX - (widthLocal / 2);
+              const y = ctY - (heightLocal / 2);
+
+              // Extract class scores synchronously from pre-fetched data
+              let classScore = 1;
+              let label = 0;
+
+              if (this.withClassScores && classScoresData) {
+                const classData = classScoresData[row][col][anchor];
+                for (let i = 0; i < this.config.classes.length; i++) {
+                  if (classData[i] > classScore || i === 0) {
+                    classScore = classData[i];
+                    label = i;
+                  }
+                }
+              }
+
+              results.push({
+                box: new BoundingBox(x, y, x + widthLocal, y + heightLocal),
+                score,
+                classScore: score * classScore,
+                label,
+                row,
+                col,
+                anchor,
+              });
+            }
           }
         }
       }
-    }
 
-    boxesTensor.dispose();
-    scoresTensor.dispose();
-    classScoresTensor.dispose();
-    return results;
+      return results;
+    } finally {
+      // Ensure tensors are disposed even if an error occurs
+      boxesTensor.dispose();
+      scoresTensor.dispose();
+      classScoresTensor.dispose();
+    }
   }
 
   private async extractPredictedClass(classesTensor: tf.Tensor4D, pos: { row: number, col: number, anchor: number }) {
     const { row, col, anchor } = pos;
-    const classesData = await classesTensor.array();
-    return Array(this.config.classes.length).fill(0)
-      .map((_, i) => classesData[row][col][anchor][i])
-      .map((classScore, label) => ({
-        classScore,
-        label,
-      }))
-      .reduce((max, curr) => (max.classScore > curr.classScore ? max : curr));
+    const classesData = await classesTensor.array() as number[][][][];
+    const classData = classesData[row][col][anchor];
+
+    let maxScore = classData[0];
+    let maxLabel = 0;
+
+    for (let i = 1; i < this.config.classes.length; i++) {
+      if (classData[i] > maxScore) {
+        maxScore = classData[i];
+        maxLabel = i;
+      }
+    }
+
+    return { classScore: maxScore, label: maxLabel };
   }
 }

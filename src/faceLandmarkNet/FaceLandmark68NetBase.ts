@@ -23,29 +23,39 @@ export abstract class FaceLandmark68NetBase<
     const batchSize = inputDimensions.length;
 
     return tf.tidy(() => {
-      const createInterleavedTensor = (fillX: number, fillY: number) => tf.stack([tf.fill([68], fillX, 'float32'), tf.fill([68], fillY, 'float32')], 1).as2D(1, 136).as1D();
+      // Pre-compute padding and dimension arrays for vectorized operations
+      const paddingsX: number[] = [];
+      const paddingsY: number[] = [];
+      const widths: number[] = [];
+      const heights: number[] = [];
 
-      // eslint-disable-next-line no-unused-vars
-      const getPadding = (batchIdx: number, cond: (w: number, h: number) => boolean): number => {
-        const { width, height } = inputDimensions[batchIdx];
-        return cond(width, height) ? Math.abs(width - height) / 2 : 0;
+      for (let i = 0; i < batchSize; i++) {
+        const { width, height } = inputDimensions[i];
+        paddingsX.push(width < height ? Math.abs(width - height) / 2 : 0);
+        paddingsY.push(height < width ? Math.abs(width - height) / 2 : 0);
+        widths.push(width);
+        heights.push(height);
+      }
+
+      // Create interleaved tensors more efficiently using tf.tensor2d
+      const createBatchInterleavedTensor = (xVals: number[], yVals: number[]) => {
+        const data: number[][] = [];
+        for (let b = 0; b < batchSize; b++) {
+          const row: number[] = [];
+          for (let i = 0; i < 68; i++) {
+            row.push(xVals[b], yVals[b]);
+          }
+          data.push(row);
+        }
+        return tf.tensor2d(data, [batchSize, 136], 'float32');
       };
 
-      const getPaddingX = (batchIdx: number) => getPadding(batchIdx, (w, h) => w < h);
-      const getPaddingY = (batchIdx: number) => getPadding(batchIdx, (w, h) => h < w);
+      // Vectorized computation: (output * inputSize - padding) / dimensions
+      const scaled = output.mul(tf.scalar(inputSize, 'float32'));
+      const paddingTensor = createBatchInterleavedTensor(paddingsX, paddingsY);
+      const dimTensor = createBatchInterleavedTensor(widths, heights);
 
-      const landmarkTensors = output
-        .mul(tf.fill([batchSize, 136], inputSize, 'float32'))
-        .sub(tf.stack(Array.from(Array(batchSize), (_, batchIdx) => createInterleavedTensor(
-          getPaddingX(batchIdx),
-          getPaddingY(batchIdx),
-        ))))
-        .div(tf.stack(Array.from(Array(batchSize), (_, batchIdx) => createInterleavedTensor(
-          inputDimensions[batchIdx].width,
-          inputDimensions[batchIdx].height,
-        ))));
-
-      return landmarkTensors as tf.Tensor2D;
+      return scaled.sub(paddingTensor).div(dimTensor) as tf.Tensor2D;
     });
   }
 
@@ -70,25 +80,32 @@ export abstract class FaceLandmark68NetBase<
       () => tf.unstack(this.forwardInput(netInput)),
     );
 
-    const landmarksForBatch = await Promise.all(landmarkTensors.map(
-      async (landmarkTensor, batchIdx) => {
-        const landmarksArray = Array.from(landmarkTensor.dataSync());
-        const xCoords = landmarksArray.filter((_, i) => isEven(i));
-        const yCoords = landmarksArray.filter((_, i) => !isEven(i));
+    try {
+      // Use async data() for better GPU pipelining instead of blocking dataSync()
+      const landmarkDataPromises = landmarkTensors.map((t) => t.data());
+      const landmarkDataArrays = await Promise.all(landmarkDataPromises);
 
-        return new FaceLandmarks68(
-          Array(68).fill(0).map((_, i) => new Point(xCoords[i] as number, yCoords[i] as number)),
-          {
-            height: netInput.getInputHeight(batchIdx),
-            width: netInput.getInputWidth(batchIdx),
-          },
-        );
-      },
-    ));
+      const landmarksForBatch = landmarkDataArrays.map((landmarksData, batchIdx) => {
+        // Extract x and y coordinates more efficiently
+        const points: Point[] = new Array(68);
+        for (let i = 0; i < 68; i++) {
+          points[i] = new Point(
+            landmarksData[i * 2] as number,
+            landmarksData[i * 2 + 1] as number
+          );
+        }
 
-    landmarkTensors.forEach((t) => t.dispose());
+        return new FaceLandmarks68(points, {
+          height: netInput.getInputHeight(batchIdx),
+          width: netInput.getInputWidth(batchIdx),
+        });
+      });
 
-    return netInput.isBatchInput ? landmarksForBatch as FaceLandmarks68[] : landmarksForBatch[0] as FaceLandmarks68;
+      return netInput.isBatchInput ? landmarksForBatch : landmarksForBatch[0];
+    } finally {
+      // Ensure tensors are disposed even if an error occurs
+      landmarkTensors.forEach((t) => t.dispose());
+    }
   }
 
   protected getClassifierChannelsOut(): number {

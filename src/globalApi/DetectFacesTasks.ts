@@ -30,12 +30,9 @@ export class DetectAllFacesTask extends DetectFacesTaskBase<FaceDetection[]> {
     return result;
   }
 
-  private runAndExtendWithFaceDetections(): Promise<WithFaceDetection<{}>[]> {
-    return new Promise<WithFaceDetection<{}>[]>((resolve, reject) => {
-      this.run()
-        .then((detections) => resolve(detections.map((detection) => extendWithFaceDetection({}, detection))))
-        .catch((err) => reject(err));
-    });
+  private async runAndExtendWithFaceDetections(): Promise<WithFaceDetection<{}>[]> {
+    const detections = await this.run();
+    return detections.map((detection) => extendWithFaceDetection({}, detection));
   }
 
   withFaceLandmarks(useTinyLandmarkNet = false) {
@@ -63,20 +60,22 @@ export class DetectAllFacesTask extends DetectFacesTaskBase<FaceDetection[]> {
 
 export class DetectSingleFaceTask extends DetectFacesTaskBase<FaceDetection | undefined> {
   public override async run(): Promise<FaceDetection | undefined> {
-    const faceDetections = await new DetectAllFacesTask(this.input, this.options);
-    let faceDetectionWithHighestScore = faceDetections[0];
-    faceDetections.forEach((faceDetection) => {
-      if (faceDetection.score > faceDetectionWithHighestScore.score) faceDetectionWithHighestScore = faceDetection;
-    });
-    return faceDetectionWithHighestScore;
+    const faceDetections = await new DetectAllFacesTask(this.input, this.options).run();
+
+    // Handle empty detections array - return undefined instead of crashing
+    if (!faceDetections || faceDetections.length === 0) {
+      return undefined;
+    }
+
+    // Find face with highest score using reduce for better performance
+    return faceDetections.reduce((best, current) =>
+      current.score > best.score ? current : best
+    );
   }
 
-  private runAndExtendWithFaceDetection(): Promise<WithFaceDetection<{}> | undefined> {
-    // eslint-disable-next-line no-async-promise-executor
-    return new Promise<WithFaceDetection<{}> | undefined>(async (resolve) => {
-      const detection = await this.run();
-      resolve(detection ? extendWithFaceDetection<{}>({}, detection) : undefined);
-    });
+  private async runAndExtendWithFaceDetection(): Promise<WithFaceDetection<{}> | undefined> {
+    const detection = await this.run();
+    return detection ? extendWithFaceDetection<{}>({}, detection) : undefined;
   }
 
   withFaceLandmarks(useTinyLandmarkNet = false) {

@@ -37,40 +37,60 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   public async locateFaces(input: TNetInput, options: ISsdMobilenetv1Options = {}): Promise<FaceDetection[]> {
     const { maxResults, minConfidence } = new SsdMobilenetv1Options(options);
     const netInput = await toNetInput(input);
+
     const { boxes: _boxes, scores: _scores } = this.forwardInput(netInput);
+
+    // Keep only first batch, dispose the rest immediately
     const boxes = _boxes[0];
     const scores = _scores[0];
     for (let i = 1; i < _boxes.length; i++) {
       _boxes[i].dispose();
       _scores[i].dispose();
     }
-    const scoresData = Array.from(scores.dataSync());
-    const iouThreshold = 0.5;
-    const indices = nonMaxSuppression(boxes, scoresData as number[], maxResults, iouThreshold, minConfidence);
-    const reshapedDims = netInput.getReshapedInputDimensions(0);
-    const inputSize = netInput.inputSize as number;
-    const padX = inputSize / reshapedDims.width;
-    const padY = inputSize / reshapedDims.height;
-    const boxesData = boxes.arraySync();
-    const results = indices
-      .map((idx) => {
+
+    try {
+      // Use async data() instead of blocking dataSync() for better GPU pipelining
+      const [scoresData, boxesData] = await Promise.all([
+        scores.data(),
+        boxes.array() as Promise<number[][]>,
+      ]);
+
+      const iouThreshold = 0.5;
+      const scoresArray = Array.from(scoresData);
+      const indices = nonMaxSuppression(boxes, scoresArray, maxResults, iouThreshold, minConfidence);
+
+      const reshapedDims = netInput.getReshapedInputDimensions(0);
+      const inputSize = netInput.inputSize as number;
+      const padX = inputSize / reshapedDims.width;
+      const padY = inputSize / reshapedDims.height;
+
+      const results: FaceDetection[] = [];
+      for (const idx of indices) {
+        const boxData = boxesData[idx];
+        if (!boxData) continue;
+
         const [top, bottom] = [
-          Math.max(0, boxesData[idx][0]),
-          Math.min(1.0, boxesData[idx][2]),
+          Math.max(0, boxData[0]),
+          Math.min(1.0, boxData[2]),
         ].map((val) => val * padY);
         const [left, right] = [
-          Math.max(0, boxesData[idx][1]),
-          Math.min(1.0, boxesData[idx][3]),
+          Math.max(0, boxData[1]),
+          Math.min(1.0, boxData[3]),
         ].map((val) => val * padX);
-        return new FaceDetection(
-          scoresData[idx] as number,
+
+        results.push(new FaceDetection(
+          scoresArray[idx],
           new Rect(left, top, right - left, bottom - top),
           { height: netInput.getInputHeight(0), width: netInput.getInputWidth(0) },
-        );
-      });
-    boxes.dispose();
-    scores.dispose();
-    return results;
+        ));
+      }
+
+      return results;
+    } finally {
+      // Ensure tensors are disposed even if an error occurs
+      boxes.dispose();
+      scores.dispose();
+    }
   }
 
   protected getDefaultModelName(): string {

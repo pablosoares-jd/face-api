@@ -24,7 +24,8 @@ export {
   LabeledFaceDescriptor,
   ClassificationResult,
   ClassifyOptions,
-  SerializedClassifier
+  SerializedClassifier,
+  DistanceMetric
 } from './FaceClassifier';
 
 // Model Trainer for fine-tuning
@@ -61,5 +62,6 @@ export {
   AugmentRange
 } from './ImageAugmenter';
 
-// Re-export tf for convenience
-export { tf } from '../index';
+// Re-export tf for convenience (direct import to avoid circular dependency)
+import * as tf from '@tensorflow/tfjs';
+export { tf };

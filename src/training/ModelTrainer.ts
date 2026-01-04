@@ -141,7 +141,7 @@ export class ModelTrainer<TNetParams> {
    * Freeze feature extractor layers only.
    * Keeps classification head trainable for transfer learning.
    */
-  public freezeFeatureExtractor(): void {
+  public async freezeFeatureExtractor(): Promise<void> {
     const params = this._model.getParamList();
 
     // Common patterns for feature extractor layers
@@ -159,8 +159,9 @@ export class ModelTrainer<TNetParams> {
       const isFeatureExtractor = featurePatterns.some(p => p.test(path));
 
       if (isFeatureExtractor && tensor instanceof tf.Variable) {
-        // Convert to frozen tensor
-        const frozen = tf.tensor(tensor.dataSync(), tensor.shape);
+        // Convert to frozen tensor (async to avoid blocking)
+        const data = await tensor.data();
+        const frozen = tf.tensor(data, tensor.shape);
         tensor.dispose();
         this._model.reassignParamFromPath(path, frozen);
         this._frozenPaths.add(path);
@@ -171,12 +172,13 @@ export class ModelTrainer<TNetParams> {
   /**
    * Freeze specific layers by path pattern.
    */
-  public freezeLayers(pattern: RegExp): void {
+  public async freezeLayers(pattern: RegExp): Promise<void> {
     const params = this._model.getParamList();
 
     for (const { path, tensor } of params) {
       if (pattern.test(path) && tensor instanceof tf.Variable) {
-        const frozen = tf.tensor(tensor.dataSync(), tensor.shape);
+        const data = await tensor.data();
+        const frozen = tf.tensor(data, tensor.shape);
         tensor.dispose();
         this._model.reassignParamFromPath(path, frozen);
         this._frozenPaths.add(path);
@@ -267,9 +269,9 @@ export class ModelTrainer<TNetParams> {
     // Get loss function
     const lossFunction = customLoss || this._getLossFunction(loss);
 
-    // Prepare data
-    const inputTensor = Array.isArray(inputs) ? tf.concat(inputs) : inputs;
-    const labelTensor = Array.isArray(labels) ? tf.concat(labels) : labels;
+    // Prepare data - clone to avoid disposing user's tensors
+    const inputTensor = Array.isArray(inputs) ? tf.concat(inputs) : inputs.clone();
+    const labelTensor = Array.isArray(labels) ? tf.concat(labels) : labels.clone();
 
     const numSamples = inputTensor.shape[0];
     const numValidation = Math.floor(numSamples * validationSplit);
@@ -322,7 +324,8 @@ export class ModelTrainer<TNetParams> {
           return loss;
         }, true) as tf.Scalar;
 
-        const lossValue = batchLoss.dataSync()[0];
+        const lossData = await batchLoss.data();
+        const lossValue = lossData[0];
         epochLoss += lossValue;
         batchLoss.dispose();
 
@@ -346,7 +349,8 @@ export class ModelTrainer<TNetParams> {
 
         const valPredictions = this._forwardPass(valInputs);
         const valLossTensor = lossFunction(valLabels, valPredictions);
-        valLoss = valLossTensor.dataSync()[0];
+        const valLossData = await valLossTensor.data();
+        valLoss = valLossData[0];
 
         valInputs.dispose();
         valLabels.dispose();

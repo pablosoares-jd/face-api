@@ -207,40 +207,40 @@ export class ImageAugmenter {
 
   /**
    * Augment a batch of images.
+   * Note: Caller is responsible for disposing the returned tensor.
    */
   public augmentBatch(
     images: tf.Tensor4D,
     augmentationsPerImage = 1
   ): tf.Tensor4D {
-    return tf.tidy(() => {
-      const numImages = images.shape[0];
-      const augmented: tf.Tensor3D[] = [];
+    const numImages = images.shape[0];
+    const augmented: tf.Tensor3D[] = [];
 
-      for (let i = 0; i < numImages; i++) {
-        const image = tf.slice(images, [i, 0, 0, 0], [1, -1, -1, -1]);
-        const squeezed = tf.squeeze(image, [0]) as tf.Tensor3D;
+    for (let i = 0; i < numImages; i++) {
+      const image = tf.slice(images, [i, 0, 0, 0], [1, -1, -1, -1]);
+      const squeezed = tf.squeeze(image, [0]) as tf.Tensor3D;
+      image.dispose();
 
-        // Add original
-        augmented.push(squeezed.clone());
+      // Add original
+      augmented.push(squeezed.clone());
 
-        // Add augmented versions
-        for (let j = 0; j < augmentationsPerImage; j++) {
-          const result = this.augment(squeezed);
-          augmented.push(result.image);
-        }
-
-        squeezed.dispose();
+      // Add augmented versions
+      for (let j = 0; j < augmentationsPerImage; j++) {
+        const result = this.augment(squeezed);
+        augmented.push(result.image);
       }
 
-      const stacked = tf.stack(augmented) as tf.Tensor4D;
+      squeezed.dispose();
+    }
 
-      // Cleanup
-      for (const t of augmented) {
-        t.dispose();
-      }
+    const stacked = tf.stack(augmented) as tf.Tensor4D;
 
-      return stacked;
-    });
+    // Cleanup intermediate tensors
+    for (const t of augmented) {
+      t.dispose();
+    }
+
+    return stacked;
   }
 
   /**
@@ -370,14 +370,14 @@ export class ImageAugmenter {
   private _randomCrop(image: tf.Tensor3D, scale: number): tf.Tensor3D {
     return tf.tidy(() => {
       const [height, width] = image.shape;
-      const cropHeight = Math.floor(height * scale);
-      const cropWidth = Math.floor(width * scale);
+      const cropHeight = Math.max(1, Math.floor(height * scale));
+      const cropWidth = Math.max(1, Math.floor(width * scale));
 
-      const maxY = height - cropHeight;
-      const maxX = width - cropWidth;
+      const maxY = Math.max(0, height - cropHeight);
+      const maxX = Math.max(0, width - cropWidth);
 
-      const y = Math.floor(Math.random() * maxY);
-      const x = Math.floor(Math.random() * maxX);
+      const y = maxY > 0 ? Math.floor(Math.random() * maxY) : 0;
+      const x = maxX > 0 ? Math.floor(Math.random() * maxX) : 0;
 
       // Crop
       const cropped = tf.slice(image, [y, x, 0], [cropHeight, cropWidth, -1]);

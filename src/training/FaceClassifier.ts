@@ -56,6 +56,11 @@ export interface ClassificationResult {
 }
 
 /**
+ * Distance metric for classification.
+ */
+export type DistanceMetric = 'euclidean' | 'cosine';
+
+/**
  * Options for classification.
  */
 export interface ClassifyOptions {
@@ -63,6 +68,8 @@ export interface ClassifyOptions {
   threshold?: number;
   /** Number of nearest neighbors to consider (default: 1) */
   k?: number;
+  /** Distance metric to use (default: 'euclidean') */
+  metric?: DistanceMetric;
 }
 
 /**
@@ -147,6 +154,28 @@ export class FaceClassifier {
   }
 
   /**
+   * Calculate cosine distance between two descriptors.
+   * Returns 1 - cosine_similarity (0 = identical, 2 = opposite).
+   */
+  private _cosineDistance(a: number[], b: number[]): number {
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+
+    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+    if (denominator === 0) return 1;
+
+    const similarity = dotProduct / denominator;
+    return 1 - similarity;
+  }
+
+  /**
    * Classify a face descriptor.
    *
    * @param descriptor - Face descriptor to classify
@@ -157,7 +186,7 @@ export class FaceClassifier {
     descriptor: Float32Array | number[],
     options: ClassifyOptions = {}
   ): ClassificationResult {
-    const { threshold = 0.6, k = 1 } = options;
+    const { threshold = 0.6, k = 1, metric = 'euclidean' } = options;
 
     if (this._faces.length === 0) {
       return {
@@ -172,10 +201,14 @@ export class FaceClassifier {
       ? Array.from(descriptor)
       : descriptor;
 
-    // Calculate distances to all faces
+    // Calculate distances to all faces using selected metric
+    const distanceFunc = metric === 'cosine'
+      ? (a: number[], b: number[]) => this._cosineDistance(a, b)
+      : (a: number[], b: number[]) => euclideanDistance(a, b);
+
     const distances = this._faces.map(face => ({
       label: face.label,
-      distance: euclideanDistance(queryDesc, Array.from(face.descriptor))
+      distance: distanceFunc(queryDesc, Array.from(face.descriptor))
     }));
 
     // Sort by distance
@@ -230,11 +263,11 @@ export class FaceClassifier {
    * @param descriptors - Tensor of shape [N, 128]
    * @param options - Classification options
    */
-  public classifyBatch(
+  public async classifyBatch(
     descriptors: tf.Tensor2D,
     options: ClassifyOptions = {}
-  ): ClassificationResult[] {
-    const descriptorArray = descriptors.arraySync() as number[][];
+  ): Promise<ClassificationResult[]> {
+    const descriptorArray = await descriptors.array() as number[][];
     return descriptorArray.map(desc => this.classify(desc, options));
   }
 
@@ -376,5 +409,14 @@ export class FaceClassifier {
     }
 
     this._faces = centroids;
+  }
+
+  /**
+   * Dispose and clear all data.
+   * Call this when the classifier is no longer needed.
+   */
+  public dispose(): void {
+    this._faces = [];
+    this._metadata = {};
   }
 }

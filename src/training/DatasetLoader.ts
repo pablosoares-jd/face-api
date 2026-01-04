@@ -250,11 +250,13 @@ export class TrainingDataset {
       shuffleBuffer = 1000,
       prefetchBuffer = 2,
       imageSize = [224, 224],
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       normalize = true
     } = options;
 
     const samples = this._samples;
-    const task = this._metadata.task;
+    // Note: task can be used in future for label encoding
+    // const task = this._metadata.task;
 
     const generator = function* () {
       for (const sample of samples) {
@@ -413,8 +415,21 @@ export class DatasetLoader {
       ? labelColumns.map(c => headers.indexOf(c))
       : labelColumns.map((_, i) => i + 1);
 
+    // Validate column indices
+    if (hasHeader && imageIdx === -1) {
+      throw new Error(`Image column '${imageColumn}' not found in CSV headers: ${headers.join(', ')}`);
+    }
+    for (let i = 0; i < labelColumns.length; i++) {
+      if (hasHeader && labelIndices[i] === -1) {
+        throw new Error(`Label column '${labelColumns[i]}' not found in CSV headers: ${headers.join(', ')}`);
+      }
+    }
+
     for (const line of dataLines) {
       const values = line.split(delimiter).map(v => v.trim());
+
+      // Skip empty or malformed lines
+      if (values.length <= imageIdx) continue;
 
       const imagePath = basePath
         ? `${basePath}/${values[imageIdx]}`

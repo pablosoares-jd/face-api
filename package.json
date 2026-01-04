@@ -7,6 +7,30 @@
   "module": "dist/face-api.esm.js",
   "browser": "dist/face-api.esm.js",
   "types": "types/face-api.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/face-api.d.ts",
+      "browser": "./dist/face-api.esm.js",
+      "import": "./dist/face-api.esm.js",
+      "require": "./dist/face-api.node.js",
+      "default": "./dist/face-api.esm.js"
+    },
+    "./node": {
+      "types": "./types/face-api.d.ts",
+      "require": "./dist/face-api.node.js",
+      "default": "./dist/face-api.node.js"
+    },
+    "./node-gpu": {
+      "types": "./types/face-api.d.ts",
+      "require": "./dist/face-api.node-gpu.js",
+      "default": "./dist/face-api.node-gpu.js"
+    },
+    "./node-wasm": {
+      "types": "./types/face-api.d.ts",
+      "require": "./dist/face-api.node-wasm.js",
+      "default": "./dist/face-api.node-wasm.js"
+    }
+  },
   "author": "Vladimir Mandic <mandic00@live.com>",
   "bugs": {
     "url": "https://github.com/vladmandic/face-api/issues"
@@ -14,7 +38,7 @@
   "homepage": "https://vladmandic.github.io/face-api/demo/webcam.html",
   "license": "MIT",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",
@@ -25,8 +49,14 @@
     "build": "node build.js",
     "dev": "build --profile development",
     "lint": "eslint src/ demo/",
-    "test": "node --trace-warnings test/test-node.js",
-    "scan": "npx auditjs@latest ossi --dev --quiet"
+    "lint:fix": "eslint src/ demo/ --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:node": "node --trace-warnings test/test-node.js",
+    "typecheck": "tsc --noEmit",
+    "scan": "npx auditjs@latest ossi --dev --quiet",
+    "prepare": "husky || true"
   },
   "keywords": [
     "face-api",
@@ -59,6 +89,7 @@
     "@types/offscreencanvas": "^2019.7.3",
     "@typescript-eslint/eslint-plugin": "^8.5.0",
     "@typescript-eslint/parser": "^8.5.0",
+    "@vitest/coverage-v8": "^2.1.0",
     "@vladmandic/build": "^0.10.2",
     "@vladmandic/pilogger": "^0.5.1",
     "ajv": "^8.17.1",
@@ -69,11 +100,19 @@
     "eslint-plugin-json": "^4.0.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^7.1.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.2.0",
     "node-fetch": "^3.3.2",
     "rimraf": "^6.0.1",
     "seedrandom": "^3.0.5",
     "tslib": "^2.8.1",
     "typedoc": "^0.27.6",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vitest": "^2.1.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix"
+    ]
   }
 }

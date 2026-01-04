@@ -1,13 +1,18 @@
 {
+  "root": true,
   "globals": {},
   "env": {
-      "browser": true,
-      "commonjs": true,
-      "node": true,
-      "es2020": true
+    "browser": true,
+    "commonjs": true,
+    "node": true,
+    "es2022": true
   },
   "parser": "@typescript-eslint/parser",
-  "parserOptions": { "ecmaVersion": "latest" },
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
   "plugins": [
     "@typescript-eslint"
   ],
@@ -21,37 +26,39 @@
     "plugin:@typescript-eslint/recommended",
     "airbnb-base"
   ],
-  "ignorePatterns": [ "node_modules", "types" ],
+  "ignorePatterns": ["node_modules", "types", "dist", "typedoc", "*.js"],
   "rules": {
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/ban-types": "off",
-    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-var-requires": "off",
     "@typescript-eslint/no-empty-object-type": "off",
     "@typescript-eslint/no-require-imports": "off",
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "@typescript-eslint/consistent-type-imports": ["warn", { "prefer": "type-imports" }],
     "camelcase": "off",
     "class-methods-use-this": "off",
     "default-param-last": "off",
     "dot-notation": "off",
     "func-names": "off",
-    "guard-for-in": "off",
+    "guard-for-in": "warn",
     "import/extensions": "off",
     "import/no-extraneous-dependencies": "off",
     "import/no-named-as-default": "off",
     "import/no-unresolved": "off",
     "import/prefer-default-export": "off",
     "lines-between-class-members": "off",
-    "max-len": [1, 275, 3],
+    "max-len": ["warn", { "code": 160, "tabWidth": 2, "ignoreUrls": true, "ignoreStrings": true, "ignoreTemplateLiterals": true, "ignoreComments": true }],
     "newline-per-chained-call": "off",
-    "no-async-promise-executor": "off",
+    "no-async-promise-executor": "warn",
     "no-await-in-loop": "off",
     "no-bitwise": "off",
-    "no-case-declarations":"off",
+    "no-case-declarations": "off",
+    "no-console": ["warn", { "allow": ["warn", "error", "info"] }],
     "no-continue": "off",
     "no-loop-func": "off",
     "no-mixed-operators": "off",
-    "no-param-reassign":"off",
+    "no-param-reassign": "off",
     "no-plusplus": "off",
     "no-regex-spaces": "off",
     "no-restricted-globals": "off",
@@ -66,11 +73,23 @@
     "no-lonely-if": "off",
     "node/shebang": "off",
     "object-curly-newline": "off",
+    "prefer-const": "error",
     "prefer-destructuring": "off",
-    "prefer-template":"off",
+    "prefer-template": "warn",
     "promise/always-return": "off",
-    "promise/catch-or-return": "off",
+    "promise/catch-or-return": "warn",
     "promise/no-nesting": "off",
-    "radix": "off"
-  }
+    "radix": "off",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "no-var": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.spec.ts", "test/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "no-console": "off"
+      }
+    }
+  ]
 }

@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "module": "es2020",
-    "target": "es2020",
-    "lib": ["esnext", "dom", "webworker"],
-    "moduleResolution": "node",
+    "module": "ES2022",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "moduleResolution": "bundler",
     "typeRoots": ["node_modules/@types"],
     "outDir": "types",
     "allowJs": false,
@@ -20,8 +20,8 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noPropertyAccessFromIndexSignature": false,
-    "noUncheckedIndexedAccess": false,
-    "noUnusedLocals": false,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
     "noUnusedParameters": true,
     "preserveConstEnums": true,
     "removeComments": false,
@@ -32,7 +32,12 @@
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "strictPropertyInitialization": true
+    "strictPropertyInitialization": true,
+    "useDefineForClassFields": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": false,
+    "esModuleInterop": true,
+    "isolatedModules": true
   },
   "formatCodeOptions": { "indentSize": 2, "tabSize": 2 },
   "include": ["src"],

@@ -156,8 +156,8 @@ export class Box<BoxType = any> implements IBoundingBox, IRect {
     const w = this.width + 1;
     const h = this.height + 1;
 
-    const dx = 1;
-    const dy = 1;
+    let dx = 1;
+    let dy = 1;
     let edx = w;
     let edy = h;
 

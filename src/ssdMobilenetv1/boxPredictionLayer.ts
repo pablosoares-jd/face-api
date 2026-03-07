@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 
 import { convLayer } from '../common/index';
-import { BoxPredictionParams } from './types';
+import type { BoxPredictionParams } from './types';
 
 export function boxPredictionLayer(
   x: tf.Tensor4D,

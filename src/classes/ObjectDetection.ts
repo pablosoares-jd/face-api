@@ -1,6 +1,7 @@
 import { Box } from './Box';
-import { Dimensions, IDimensions } from './Dimensions';
-import { IRect, Rect } from './Rect';
+import type { IDimensions } from './Dimensions';
+import { Dimensions } from './Dimensions';
+import type { IRect, Rect } from './Rect';
 
 export class ObjectDetection {
   private _score: number;
@@ -24,7 +25,16 @@ export class ObjectDetection {
     this._score = score;
     this._classScore = classScore;
     this._className = className;
-    this._box = new Box(relativeBox).rescale(this._imageDims);
+
+    // Validate relativeBox coordinates before creating Box
+    const validBox: IRect = {
+      x: Number.isFinite(relativeBox.x) ? relativeBox.x : 0,
+      y: Number.isFinite(relativeBox.y) ? relativeBox.y : 0,
+      width: Number.isFinite(relativeBox.width) && relativeBox.width > 0 ? relativeBox.width : 1,
+      height: Number.isFinite(relativeBox.height) && relativeBox.height > 0 ? relativeBox.height : 1,
+    };
+
+    this._box = new Box(validBox).rescale(this._imageDims);
   }
 
   public get score(): number { return this._score; }

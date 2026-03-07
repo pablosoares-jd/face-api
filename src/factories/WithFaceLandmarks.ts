@@ -1,8 +1,9 @@
 import { Point } from '../classes';
 import { FaceDetection } from '../classes/FaceDetection';
 import { FaceLandmarks } from '../classes/FaceLandmarks';
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { isWithFaceDetection, WithFaceDetection } from './WithFaceDetection';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { WithFaceDetection } from './WithFaceDetection';
+import { isWithFaceDetection } from './WithFaceDetection';
 
 export type WithFaceLandmarks<
   TSource extends WithFaceDetection<{}>,
@@ -86,9 +87,18 @@ function calculateFaceAngle(mesh: FaceLandmarks) {
 
   if (!mesh || !mesh.positions || mesh.positions.length !== 68) return angle;
   const pt = mesh.positions;
-  angle.roll = calcRoll(pt[27], pt[66]);
-  angle.pitch = calcPitch(pt[14], pt[30], pt[2]);
-  angle.yaw = calcYaw(pt[14], pt[33], pt[2]);
+  const pt27 = pt[27];
+  const pt66 = pt[66];
+  const pt14 = pt[14];
+  const pt30 = pt[30];
+  const pt2 = pt[2];
+  const pt33 = pt[33];
+
+  if (!pt27 || !pt66 || !pt14 || !pt30 || !pt2 || !pt33) return angle;
+
+  angle.roll = calcRoll(pt27, pt66);
+  angle.pitch = calcPitch(pt14, pt30, pt2);
+  angle.yaw = calcYaw(pt14, pt33, pt2);
   return angle;
 }
 

@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { Rect } from '../classes/index';
+import type { Rect } from '../classes/index';
 import { FaceDetection } from '../classes/FaceDetection';
 import { isTensor3D, isTensor4D } from '../utils/index';
 
@@ -24,7 +24,15 @@ export async function extractFaceTensors(imageTensor: tf.Tensor3D | tf.Tensor4D,
   }
 
   return tf.tidy(() => {
-    const [imgHeight, imgWidth, numChannels] = imageTensor.shape.slice(isTensor4D(imageTensor) ? 1 : 0);
+    const shapeSlice = imageTensor.shape.slice(isTensor4D(imageTensor) ? 1 : 0);
+    const imgHeight = shapeSlice[0];
+    const imgWidth = shapeSlice[1];
+    const numChannels = shapeSlice[2];
+
+    if (imgHeight === undefined || imgWidth === undefined || numChannels === undefined) {
+      throw new Error('extractFaceTensors - invalid tensor shape');
+    }
+
     const boxes = detections.map((det) => (det instanceof FaceDetection ? det.forSize(imgWidth, imgHeight).box : det))
       .map((box) => box.clipAtImageBorders(imgWidth, imgHeight));
     const faceTensors = boxes

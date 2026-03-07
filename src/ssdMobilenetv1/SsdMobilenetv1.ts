@@ -1,8 +1,10 @@
 import * as tf from '@tensorflow/tfjs';
 
 import { Rect } from '../classes/index';
+import { INPUT_RANGES, validateInputRange } from '../common/inputValidation';
 import { FaceDetection } from '../classes/FaceDetection';
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
@@ -10,8 +12,20 @@ import { mobileNetV1 } from './mobileNetV1';
 import { nonMaxSuppression } from './nonMaxSuppression';
 import { outputLayer } from './outputLayer';
 import { predictionLayer } from './predictionLayer';
-import { ISsdMobilenetv1Options, SsdMobilenetv1Options } from './SsdMobilenetv1Options';
-import { NetParams } from './types';
+import type { ISsdMobilenetv1Options } from './SsdMobilenetv1Options';
+import { SsdMobilenetv1Options } from './SsdMobilenetv1Options';
+import type { NetParams } from './types';
+
+/** Whether to validate input range (can be disabled for performance in production) */
+let inputValidationEnabled = process.env.NODE_ENV !== 'production';
+
+/**
+ * Enable or disable input validation for SsdMobilenetv1.
+ * Validation is enabled by default in development, disabled in production.
+ */
+export function setInputValidation(enabled: boolean): void {
+  inputValidationEnabled = enabled;
+}
 
 export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   constructor() {
@@ -30,6 +44,24 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
     });
   }
 
+  /**
+   * Forward pass with optional input validation.
+   * @param input The input tensor
+   * @param validateInput Whether to validate input range (default: based on environment)
+   */
+  public async forwardInputWithValidation(input: NetInput, validateInput = inputValidationEnabled) {
+    if (validateInput) {
+      const inputTensor = input.getInput(0);
+      if (inputTensor instanceof tf.Tensor) {
+        await validateInputRange(inputTensor, INPUT_RANGES.IMAGE_UINT8, {
+          modelName: 'SsdMobilenetv1',
+          logWarnings: true,
+        });
+      }
+    }
+    return this.forwardInput(input);
+  }
+
   public async forward(input: TNetInput) {
     return this.forwardInput(await toNetInput(input));
   }
@@ -43,9 +75,16 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
     // Keep only first batch, dispose the rest immediately
     const boxes = _boxes[0];
     const scores = _scores[0];
+
+    if (!boxes || !scores) {
+      throw new Error('SsdMobilenetv1 - no boxes or scores returned from model');
+    }
+
     for (let i = 1; i < _boxes.length; i++) {
-      _boxes[i].dispose();
-      _scores[i].dispose();
+      const b = _boxes[i];
+      const s = _scores[i];
+      if (b) b.dispose();
+      if (s) s.dispose();
     }
 
     try {
@@ -54,6 +93,16 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
         scores.data(),
         boxes.array() as Promise<number[][]>,
       ]);
+
+      // Defensive null checks for tensor data
+      if (!scoresData || scoresData.length === 0) {
+        console.warn('SsdMobilenetv1: No scores data returned from model');
+        return [];
+      }
+      if (!boxesData || boxesData.length === 0) {
+        console.warn('SsdMobilenetv1: No boxes data returned from model');
+        return [];
+      }
 
       const iouThreshold = 0.5;
       const scoresArray = Array.from(scoresData);
@@ -70,17 +119,19 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
         const boxData = boxesData[idx];
         if (!boxData) continue;
 
-        const [top, bottom] = [
-          Math.max(0, boxData[0]),
-          Math.min(1.0, boxData[2]),
-        ].map((val) => val * padY);
-        const [left, right] = [
-          Math.max(0, boxData[1]),
-          Math.min(1.0, boxData[3]),
-        ].map((val) => val * padX);
+        const box0 = boxData[0] ?? 0;
+        const box1 = boxData[1] ?? 0;
+        const box2 = boxData[2] ?? 0;
+        const box3 = boxData[3] ?? 0;
 
+        const top = Math.max(0, box0) * padY;
+        const bottom = Math.min(1.0, box2) * padY;
+        const left = Math.max(0, box1) * padX;
+        const right = Math.min(1.0, box3) * padX;
+
+        const score = scoresArray[idx] ?? 0;
         results.push(new FaceDetection(
-          scoresArray[idx],
+          score,
           new Rect(left, top, right - left, bottom - top),
           { height: netInput.getInputHeight(0), width: netInput.getInputWidth(0) },
         ));

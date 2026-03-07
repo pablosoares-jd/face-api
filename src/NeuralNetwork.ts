@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { ParamMapping } from './common/index';
+import type { ParamMapping } from './common/index';
 import { getModelUris } from './common/getModelUris';
 import { loadWeightMap } from './dom/index';
 import { env } from './env/index';
@@ -141,9 +141,9 @@ export abstract class NeuralNetwork<TNetParams> {
       metadata: {
         ...metadata,
         framework: 'face-api.js',
-        trainedAt: new Date().toISOString()
+        trainedAt: new Date().toISOString(),
       },
-      checksum
+      checksum,
     };
   }
 
@@ -213,10 +213,31 @@ export abstract class NeuralNetwork<TNetParams> {
     }
     const { readFile } = env.getEnv();
     const { manifestUri, modelBaseUri } = getModelUris(filePath, this.getDefaultModelName());
-    const fetchWeightsFromDisk = (filePaths: string[]) => Promise.all(filePaths.map((fp) => readFile(fp).then((buf) => (typeof buf === 'string' ? Buffer.from(buf) : buf.buffer))));
-    // @ts-ignore async-vs-sync mismatch
-    const loadWeights = tf['io'].weightsLoaderFactory(fetchWeightsFromDisk);
-    const manifest = JSON.parse((await readFile(manifestUri)).toString());
+
+    // Fetch weights from disk - returns ArrayBuffer for each file path
+    const fetchWeightsFromDisk = async (filePaths: string[]): Promise<ArrayBuffer[]> => Promise.all(
+      filePaths.map(async (fp) => {
+        const buf = await readFile(fp);
+        if (typeof buf === 'string') {
+          return Buffer.from(buf).buffer;
+        }
+        return buf.buffer;
+      }),
+    );
+
+    // Type for internal TensorFlow.js weightsLoaderFactory API
+    type WeightsLoaderFactory = (
+      fetchWeightsFunction: (filePaths: string[]) => Promise<ArrayBuffer[]>,
+    ) => (
+      manifest: tf.io.WeightsManifestConfig,
+      baseUri: string,
+    ) => Promise<tf.NamedTensorMap>;
+
+    // Access internal weightsLoaderFactory (used for custom weight loading)
+    const tfIO = tf.io as typeof tf.io & { weightsLoaderFactory: WeightsLoaderFactory };
+    const loadWeights = tfIO.weightsLoaderFactory(fetchWeightsFromDisk);
+
+    const manifest = JSON.parse((await readFile(manifestUri)).toString()) as tf.io.WeightsManifestConfig;
     const weightMap = await loadWeights(manifest, modelBaseUri);
     this.loadFromWeightMap(weightMap);
   }

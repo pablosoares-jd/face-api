@@ -24,7 +24,7 @@ export function assertValidNumber(value: unknown, paramName: string): asserts va
   if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
     throw new ValidationError(
       `Parameter "${paramName}" must be a valid finite number, received: ${typeof value === 'number' ? value : typeof value}`,
-      { paramName, value }
+      { paramName, value },
     );
   }
 }
@@ -37,7 +37,7 @@ export function assertPositiveNumber(value: unknown, paramName: string): asserts
   if (value <= 0) {
     throw new ValidationError(
       `Parameter "${paramName}" must be a positive number, received: ${value}`,
-      { paramName, value }
+      { paramName, value },
     );
   }
 }
@@ -50,7 +50,7 @@ export function assertNonNegativeNumber(value: unknown, paramName: string): asse
   if (value < 0) {
     throw new ValidationError(
       `Parameter "${paramName}" must be a non-negative number, received: ${value}`,
-      { paramName, value }
+      { paramName, value },
     );
   }
 }
@@ -63,7 +63,7 @@ export function assertValidProbability(value: unknown, paramName: string): asser
   if (value < 0 || value > 1) {
     throw new ValidationError(
       `Parameter "${paramName}" must be a probability between 0 and 1, received: ${value}`,
-      { paramName, value }
+      { paramName, value },
     );
   }
 }
@@ -74,7 +74,7 @@ export function assertValidProbability(value: unknown, paramName: string): asser
 export function assertValidDimensions(
   width: number,
   height: number,
-  config: ImageDimensionConfig = DEFAULT_DIMENSION_CONFIG
+  config: ImageDimensionConfig = DEFAULT_DIMENSION_CONFIG,
 ): void {
   const { minWidth = 1, minHeight = 1, maxWidth = 10000, maxHeight = 10000 } = config;
 
@@ -82,7 +82,7 @@ export function assertValidDimensions(
     throw new InvalidDimensionsError(
       width,
       height,
-      `Dimensions must be at least ${minWidth}x${minHeight}`
+      `Dimensions must be at least ${minWidth}x${minHeight}`,
     );
   }
 
@@ -90,7 +90,7 @@ export function assertValidDimensions(
     throw new InvalidDimensionsError(
       width,
       height,
-      `Dimensions must not exceed ${maxWidth}x${maxHeight}`
+      `Dimensions must not exceed ${maxWidth}x${maxHeight}`,
     );
   }
 }
@@ -102,13 +102,13 @@ export function assertNonEmptyArray<T>(value: unknown, paramName: string): asser
   if (!Array.isArray(value)) {
     throw new ValidationError(
       `Parameter "${paramName}" must be an array, received: ${typeof value}`,
-      { paramName, valueType: typeof value }
+      { paramName, valueType: typeof value },
     );
   }
   if (value.length === 0) {
     throw new ValidationError(
       `Parameter "${paramName}" must be a non-empty array`,
-      { paramName }
+      { paramName },
     );
   }
 }
@@ -120,12 +120,12 @@ export function assertArraysEqualLength(
   arr1: unknown[],
   arr2: unknown[],
   name1: string,
-  name2: string
+  name2: string,
 ): void {
   if (arr1.length !== arr2.length) {
     throw new ValidationError(
       `Arrays "${name1}" and "${name2}" must have the same length. Got ${arr1.length} and ${arr2.length}`,
-      { [name1 + 'Length']: arr1.length, [name2 + 'Length']: arr2.length }
+      { [`${name1}Length`]: arr1.length, [`${name2}Length`]: arr2.length },
     );
   }
 }
@@ -137,7 +137,7 @@ export function assertDefined<T>(value: T | null | undefined, paramName: string)
   if (value === null || value === undefined) {
     throw new ValidationError(
       `Parameter "${paramName}" is required but was ${value === null ? 'null' : 'undefined'}`,
-      { paramName }
+      { paramName },
     );
   }
 }
@@ -149,13 +149,13 @@ export function assertNonEmptyString(value: unknown, paramName: string): asserts
   if (typeof value !== 'string') {
     throw new ValidationError(
       `Parameter "${paramName}" must be a string, received: ${typeof value}`,
-      { paramName, valueType: typeof value }
+      { paramName, valueType: typeof value },
     );
   }
   if (value.trim().length === 0) {
     throw new ValidationError(
       `Parameter "${paramName}" must be a non-empty string`,
-      { paramName }
+      { paramName },
     );
   }
 }
@@ -182,7 +182,7 @@ export function validateDetectionOptions(options: DetectionOptions): DetectionOp
     if (options.inputSize < 32 || options.inputSize > 2048) {
       throw new ValidationError(
         `Parameter "inputSize" must be between 32 and 2048, received: ${options.inputSize}`,
-        { inputSize: options.inputSize }
+        { inputSize: options.inputSize },
       );
     }
     validated.inputSize = options.inputSize;
@@ -193,7 +193,7 @@ export function validateDetectionOptions(options: DetectionOptions): DetectionOp
     if (!Number.isInteger(options.maxResults)) {
       throw new ValidationError(
         `Parameter "maxResults" must be an integer, received: ${options.maxResults}`,
-        { maxResults: options.maxResults }
+        { maxResults: options.maxResults },
       );
     }
     validated.maxResults = options.maxResults;

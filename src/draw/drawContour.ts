@@ -1,4 +1,4 @@
-import { Point } from '../classes/index';
+import type { Point } from '../classes/index';
 
 export function drawContour(
   ctx: CanvasRenderingContext2D,
@@ -9,6 +9,7 @@ export function drawContour(
 
   points.slice(1).forEach(({ x, y }, prevIdx) => {
     const from = points[prevIdx];
+    if (!from) return;
     ctx.moveTo(from.x, from.y);
     ctx.lineTo(x, y);
   });

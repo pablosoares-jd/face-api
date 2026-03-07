@@ -1,6 +1,7 @@
-import { FaceDetection } from '../classes/FaceDetection';
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { TNetInput, toNetInput } from '../dom/index';
+import type { FaceDetection } from '../classes/FaceDetection';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
 import { SsdMobilenetv1 } from '../ssdMobilenetv1/SsdMobilenetv1';
 import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
 import { FaceRecognitionNet } from '../faceRecognitionNet/FaceRecognitionNet';
@@ -28,9 +29,9 @@ export interface FaceQualityMetrics {
 
   /** Head pose angles in degrees */
   pose: {
-    yaw: number;   // Left-right rotation
+    yaw: number; // Left-right rotation
     pitch: number; // Up-down rotation
-    roll: number;  // Tilt
+    roll: number; // Tilt
   };
 
   /** Is the pose within acceptable range? */
@@ -240,9 +241,7 @@ export class KYCFaceAnalyzer {
     }
 
     // Use the largest/most confident detection
-    const detection = detections.reduce((best, current) =>
-      current.score > best.score ? current : best
-    );
+    const detection = detections.reduce((best, current) => (current.score > best.score ? current : best));
 
     // Get landmarks
     const landmarks = await this.landmarkNet.detectLandmarks(input) as FaceLandmarks68;
@@ -352,10 +351,9 @@ export class KYCFaceAnalyzer {
 
     // Calculate head pose from landmarks
     const pose = this.estimatePose(landmarks);
-    const isFrontal =
-      Math.abs(pose.yaw) <= this.config.maxYaw &&
-      Math.abs(pose.pitch) <= this.config.maxPitch &&
-      Math.abs(pose.roll) <= this.config.maxRoll;
+    const isFrontal = Math.abs(pose.yaw) <= this.config.maxYaw
+      && Math.abs(pose.pitch) <= this.config.maxPitch
+      && Math.abs(pose.roll) <= this.config.maxRoll;
 
     // Check if eyes are visible
     const leftEye = landmarks.getLeftEye();
@@ -393,7 +391,7 @@ export class KYCFaceAnalyzer {
     const positions = landmarks.positions;
 
     // Key landmarks
-    const noseTip = positions[30];    // Nose tip
+    const noseTip = positions[30]; // Nose tip
     const leftEyeOuter = positions[36];
     const rightEyeOuter = positions[45];
     const chin = positions[8];
@@ -420,7 +418,7 @@ export class KYCFaceAnalyzer {
     // Calculate roll (tilt)
     const roll = Math.atan2(
       rightEyeOuter.y - leftEyeOuter.y,
-      rightEyeOuter.x - leftEyeOuter.x
+      rightEyeOuter.x - leftEyeOuter.x,
     ) * (180 / Math.PI);
 
     return { yaw, pitch, roll };
@@ -484,14 +482,13 @@ export class KYCFaceAnalyzer {
     // Brightness penalty for too dark or too bright
     const brightnessScore = 1 - Math.abs(0.5 - metrics.brightness) * 2;
 
-    const score =
-      metrics.sharpness * weights.sharpness +
-      brightnessScore * weights.brightness +
-      metrics.contrast * weights.contrast +
-      faceSizeScore * weights.faceSize +
-      (metrics.isFrontal ? 1 : 0.3) * weights.frontal +
-      (metrics.eyesVisible ? 1 : 0) * weights.eyes +
-      metrics.detectionConfidence * weights.confidence;
+    const score = metrics.sharpness * weights.sharpness
+      + brightnessScore * weights.brightness
+      + metrics.contrast * weights.contrast
+      + faceSizeScore * weights.faceSize
+      + (metrics.isFrontal ? 1 : 0.3) * weights.frontal
+      + (metrics.eyesVisible ? 1 : 0) * weights.eyes
+      + metrics.detectionConfidence * weights.confidence;
 
     return Math.max(0, Math.min(1, score));
   }

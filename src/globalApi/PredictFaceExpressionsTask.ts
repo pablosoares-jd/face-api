@@ -1,11 +1,12 @@
 /* eslint-disable max-classes-per-file */
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { TNetInput } from '../dom/index';
-import { FaceExpressions } from '../faceExpressionNet/FaceExpressions';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { extendWithFaceExpressions, WithFaceExpressions } from '../factories/WithFaceExpressions';
-import { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { TNetInput } from '../dom/index';
+import type { FaceExpressions } from '../faceExpressionNet/FaceExpressions';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceExpressions } from '../factories/WithFaceExpressions';
+import { extendWithFaceExpressions } from '../factories/WithFaceExpressions';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
 import { ComposableTask } from './ComposableTask';
 import { ComputeAllFaceDescriptorsTask, ComputeSingleFaceDescriptorTask } from './ComputeFaceDescriptorsTasks';
 import { extractAllFacesAndComputeResults, extractSingleFaceAndComputeResult } from './extractFacesAndComputeResults';
@@ -25,7 +26,9 @@ export class PredictFaceExpressionsTaskBase<TReturn, TParentReturn> extends Comp
   }
 }
 
-export class PredictAllFaceExpressionsTask<TSource extends WithFaceDetection<{}>> extends PredictFaceExpressionsTaskBase<WithFaceExpressions<TSource>[], TSource[]> {
+export class PredictAllFaceExpressionsTask<
+  TSource extends WithFaceDetection<{}>,
+> extends PredictFaceExpressionsTaskBase<WithFaceExpressions<TSource>[], TSource[]> {
   public override async run(): Promise<WithFaceExpressions<TSource>[]> {
     const parentResults = await this.parentTask;
 
@@ -38,9 +41,13 @@ export class PredictAllFaceExpressionsTask<TSource extends WithFaceDetection<{}>
       this.extractedFaces,
     );
 
-    return parentResults.map(
-      (parentResult, i) => extendWithFaceExpressions<TSource>(parentResult, faceExpressionsByFace[i]),
-    );
+    return parentResults.map((parentResult, i) => {
+      const expressions = faceExpressionsByFace[i];
+      if (!expressions) {
+        throw new Error(`PredictAllFaceExpressionsTask - no expressions at index ${i}`);
+      }
+      return extendWithFaceExpressions<TSource>(parentResult, expressions);
+    });
   }
 
   withAgeAndGender() {
@@ -48,7 +55,9 @@ export class PredictAllFaceExpressionsTask<TSource extends WithFaceDetection<{}>
   }
 }
 
-export class PredictSingleFaceExpressionsTask<TSource extends WithFaceDetection<{}>> extends PredictFaceExpressionsTaskBase<WithFaceExpressions<TSource> | undefined, TSource | undefined> {
+export class PredictSingleFaceExpressionsTask<
+  TSource extends WithFaceDetection<{}>,
+> extends PredictFaceExpressionsTaskBase<WithFaceExpressions<TSource> | undefined, TSource | undefined> {
   public override async run(): Promise<WithFaceExpressions<TSource> | undefined> {
     const parentResult = await this.parentTask;
     if (!parentResult) {
@@ -70,7 +79,9 @@ export class PredictSingleFaceExpressionsTask<TSource extends WithFaceDetection<
   }
 }
 
-export class PredictAllFaceExpressionsWithFaceAlignmentTask<TSource extends WithFaceLandmarks<WithFaceDetection<{}>>> extends PredictAllFaceExpressionsTask<TSource> {
+export class PredictAllFaceExpressionsWithFaceAlignmentTask<
+  TSource extends WithFaceLandmarks<WithFaceDetection<{}>>,
+> extends PredictAllFaceExpressionsTask<TSource> {
   override withAgeAndGender() {
     return new PredictAllAgeAndGenderWithFaceAlignmentTask(this, this.input);
   }
@@ -80,7 +91,9 @@ export class PredictAllFaceExpressionsWithFaceAlignmentTask<TSource extends With
   }
 }
 
-export class PredictSingleFaceExpressionsWithFaceAlignmentTask<TSource extends WithFaceLandmarks<WithFaceDetection<{}>>> extends PredictSingleFaceExpressionsTask<TSource> {
+export class PredictSingleFaceExpressionsWithFaceAlignmentTask<
+  TSource extends WithFaceLandmarks<WithFaceDetection<{}>>,
+> extends PredictSingleFaceExpressionsTask<TSource> {
   override withAgeAndGender() {
     return new PredictSingleAgeAndGenderWithFaceAlignmentTask(this, this.input);
   }

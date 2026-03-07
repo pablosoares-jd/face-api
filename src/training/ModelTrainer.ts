@@ -32,17 +32,18 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
-import { NeuralNetwork } from '../NeuralNetwork';
+import type { NeuralNetwork } from '../NeuralNetwork';
+import type {
+  EarlyStoppingConfig,
+  LRSchedulerConfig,
+  CheckpointConfig,
+  GradientClipConfig } from './TrainingUtils';
 import {
   EarlyStopping,
-  EarlyStoppingConfig,
   LRScheduler,
-  LRSchedulerConfig,
   Checkpointer,
-  CheckpointConfig,
-  GradientClipConfig,
   createAdamW,
-  TrainingProgress
+  TrainingProgress,
 } from './TrainingUtils';
 
 /**
@@ -175,11 +176,11 @@ export class ModelTrainer<TNetParams> {
       /dense_block/i,
       /residual/i,
       /backbone/i,
-      /encoder/i
+      /encoder/i,
     ];
 
     for (const { path, tensor } of params) {
-      const isFeatureExtractor = featurePatterns.some(p => p.test(path));
+      const isFeatureExtractor = featurePatterns.some((p) => p.test(path));
 
       if (isFeatureExtractor && tensor instanceof tf.Variable) {
         // Convert to frozen tensor (async to avoid blocking)
@@ -270,7 +271,7 @@ export class ModelTrainer<TNetParams> {
   public async fit(
     inputs: tf.Tensor | tf.Tensor[],
     labels: tf.Tensor | tf.Tensor[],
-    config: TrainingConfig = {}
+    config: TrainingConfig = {},
   ): Promise<TrainingLogs> {
     const {
       epochs = 10,
@@ -283,7 +284,7 @@ export class ModelTrainer<TNetParams> {
       callbacks = {},
       earlyStopping: earlyStoppingConfig,
       lrScheduler: lrSchedulerConfig,
-      checkpointing: checkpointingConfig
+      checkpointing: checkpointingConfig,
     } = config;
 
     if (!this._isCompiled) {
@@ -365,25 +366,25 @@ export class ModelTrainer<TNetParams> {
           const predictions = this._forwardPass(batchInputs);
 
           // Compute loss
-          const loss = lossFunction(batchLabels, predictions);
+          const batchLossValue = lossFunction(batchLabels, predictions);
 
           // Cleanup
           batchInputs.dispose();
           batchLabels.dispose();
           predictions.dispose();
 
-          return loss;
+          return batchLossValue;
         }, true) as tf.Scalar;
 
         const lossData = await batchLoss.data();
-        const lossValue = lossData[0];
+        const lossValue = lossData[0] ?? 0;
         epochLoss += lossValue;
         batchLoss.dispose();
 
         await callbacks.onBatchEnd?.(batchCount, {
           batch: batchCount,
           loss: lossValue,
-          size: batchEnd - i
+          size: batchEnd - i,
         });
 
         batchCount++;
@@ -416,7 +417,7 @@ export class ModelTrainer<TNetParams> {
         loss: epochLoss,
         valLoss,
         learningRate: currentLR,
-        duration: epochDuration
+        duration: epochDuration,
       };
 
       history.push(epochLogs);
@@ -434,43 +435,44 @@ export class ModelTrainer<TNetParams> {
       const eta = progress.getETA(epoch, epochs);
       const etaStr = eta > 0 ? ` - ETA: ${TrainingProgress.formatTime(eta)}` : '';
 
-      console.log(
-        `Epoch ${epoch + 1}/${epochs} - ` +
-        `loss: ${epochLoss.toFixed(4)}` +
-        (valLoss !== undefined ? ` - val_loss: ${valLoss.toFixed(4)}` : '') +
-        (lrScheduler ? ` - lr: ${currentLR.toExponential(2)}` : '') +
-        ` - ${epochDuration}ms${etaStr}`
+      console.info(
+        `Epoch ${epoch + 1}/${epochs} - `
+        + `loss: ${epochLoss.toFixed(4)}${
+          valLoss !== undefined ? ` - val_loss: ${valLoss.toFixed(4)}` : ''
+        }${lrScheduler ? ` - lr: ${currentLR.toExponential(2)}` : ''
+        } - ${epochDuration}ms${etaStr}`,
       );
 
       // Early stopping check
       if (earlyStopping?.check(epoch, epochLogs)) {
         stoppedEarly = true;
-        console.log(`\nTraining stopped early at epoch ${epoch + 1}`);
+        console.info(`\nTraining stopped early at epoch ${epoch + 1}`);
         break;
       }
     }
 
     const actualEpochs = stoppedEarly ? history.length : epochs;
 
+    const lastHistory = history[history.length - 1];
     const finalLogs: TrainingLogs = {
       epochs: actualEpochs,
       totalBatches,
-      finalLoss: history[history.length - 1].loss,
-      finalValLoss: history[history.length - 1].valLoss,
+      finalLoss: lastHistory?.loss ?? 0,
+      finalValLoss: lastHistory?.valLoss,
       history,
-      stoppedEarly
+      stoppedEarly,
     };
 
     await callbacks.onTrainEnd?.(finalLogs);
 
     // Print training summary
     const summary = progress.getSummary();
-    console.log('\n=== Training Summary ===');
-    console.log(`Total time: ${TrainingProgress.formatTime(summary.totalTime)}`);
-    console.log(`Epochs completed: ${actualEpochs}${stoppedEarly ? ' (early stopped)' : ''}`);
-    console.log(`Best loss: ${summary.bestLoss.toFixed(6)}`);
+    console.info('\n=== Training Summary ===');
+    console.info(`Total time: ${TrainingProgress.formatTime(summary.totalTime)}`);
+    console.info(`Epochs completed: ${actualEpochs}${stoppedEarly ? ' (early stopped)' : ''}`);
+    console.info(`Best loss: ${summary.bestLoss.toFixed(6)}`);
     if (summary.bestValLoss !== undefined) {
-      console.log(`Best val_loss: ${summary.bestValLoss.toFixed(6)}`);
+      console.info(`Best val_loss: ${summary.bestValLoss.toFixed(6)}`);
     }
 
     // Cleanup
@@ -511,11 +513,11 @@ export class ModelTrainer<TNetParams> {
    */
   public async saveWeights(
     path: string,
-    trainingLogs?: TrainingLogs
+    trainingLogs?: TrainingLogs,
   ): Promise<void> {
     const serialized = await this._model.serializeWithMetadata({
       epochs: trainingLogs?.epochs,
-      finalLoss: trainingLogs?.finalLoss
+      finalLoss: trainingLogs?.finalLoss,
     });
 
     const json = JSON.stringify(serialized);
@@ -595,7 +597,7 @@ export function tripletLoss(
   anchor: tf.Tensor,
   positive: tf.Tensor,
   negative: tf.Tensor,
-  margin = 0.2
+  margin = 0.2,
 ): tf.Scalar {
   return tf.tidy(() => {
     const positiveDist = tf.sum(tf.square(tf.sub(anchor, positive)), -1);
@@ -617,7 +619,7 @@ export function contrastiveLoss(
   embeddings1: tf.Tensor,
   embeddings2: tf.Tensor,
   labels: tf.Tensor,
-  margin = 1.0
+  margin = 1.0,
 ): tf.Scalar {
   return tf.tidy(() => {
     const distances = tf.sqrt(tf.sum(tf.square(tf.sub(embeddings1, embeddings2)), -1));
@@ -628,7 +630,7 @@ export function contrastiveLoss(
     // Loss for different pairs: max(0, margin - distance)^2
     const diffLoss = tf.mul(
       tf.sub(1, labels),
-      tf.square(tf.maximum(0, tf.sub(margin, distances)))
+      tf.square(tf.maximum(0, tf.sub(margin, distances))),
     );
 
     return tf.mean(tf.add(sameLoss, diffLoss)) as tf.Scalar;

@@ -1,6 +1,6 @@
 import type { Tensor3D, Tensor4D } from '@tensorflow/tfjs';
 
-import { NetInput } from './NetInput';
+import type { NetInput } from './NetInput';
 
 export type TMediaElement = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
 

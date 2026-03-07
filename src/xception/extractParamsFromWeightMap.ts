@@ -1,9 +1,10 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { disposeUnusedWeightTensors, extractWeightEntryFactory, loadSeparableConvParamsFactory, ParamMapping } from '../common/index';
+import type { ParamMapping } from '../common/index';
+import { disposeUnusedWeightTensors, extractWeightEntryFactory, loadSeparableConvParamsFactory } from '../common/index';
 import { loadConvParamsFactory } from '../common/loadConvParamsFactory';
 import { range } from '../utils/index';
-import { MainBlockParams, ReductionBlockParams, TinyXceptionParams } from './types';
+import type { MainBlockParams, ReductionBlockParams, TinyXceptionParams } from './types';
 
 function loadParamsFactory(weightMap: any, paramMappings: ParamMapping[]) {
   const extractWeightEntry = extractWeightEntryFactory(weightMap, paramMappings);

@@ -1,8 +1,9 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { disposeUnusedWeightTensors, ParamMapping } from '../common/index';
+import type { ParamMapping } from '../common/index';
+import { disposeUnusedWeightTensors } from '../common/index';
 import { loadParamsFactory } from './loadParamsFactory';
-import { FaceFeatureExtractorParams } from './types';
+import type { FaceFeatureExtractorParams } from './types';
 
 export function extractParamsFromWeightMap(
   weightMap: tf.NamedTensorMap,

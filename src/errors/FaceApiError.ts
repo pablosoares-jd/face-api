@@ -78,7 +78,7 @@ export class UnsupportedInputError extends FaceApiError {
     super(
       `Unsupported input type: "${inputType}". Supported types: ${supportedTypes.join(', ')}`,
       'UNSUPPORTED_INPUT_ERROR',
-      { inputType, supportedTypes }
+      { inputType, supportedTypes },
     );
     this.name = 'UnsupportedInputError';
     this.inputType = inputType;
@@ -94,7 +94,7 @@ export class InvalidDimensionsError extends FaceApiError {
     super(
       `Invalid image dimensions: ${width}x${height}. ${reason}`,
       'INVALID_DIMENSIONS_ERROR',
-      { width, height, reason }
+      { width, height, reason },
     );
     this.name = 'InvalidDimensionsError';
   }
@@ -110,7 +110,7 @@ export class ModelNotLoadedError extends FaceApiError {
     super(
       `Model "${modelName}" is not loaded. Please load the model before using it.`,
       'MODEL_NOT_LOADED_ERROR',
-      { modelName }
+      { modelName },
     );
     this.name = 'ModelNotLoadedError';
     this.modelName = modelName;

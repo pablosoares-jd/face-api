@@ -1,6 +1,7 @@
-import { extractWeightEntryFactory, loadSeparableConvParamsFactory, ParamMapping } from '../common/index';
+import type { ParamMapping } from '../common/index';
+import { extractWeightEntryFactory, loadSeparableConvParamsFactory } from '../common/index';
 import { loadConvParamsFactory } from '../common/loadConvParamsFactory';
-import { DenseBlock3Params, DenseBlock4Params } from './types';
+import type { DenseBlock3Params, DenseBlock4Params } from './types';
 
 export function loadParamsFactory(weightMap: any, paramMappings: ParamMapping[]) {
   const extractWeightEntry = extractWeightEntryFactory(weightMap, paramMappings);

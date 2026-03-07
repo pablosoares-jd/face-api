@@ -19,89 +19,85 @@
  */
 
 // KNN-based Face Classifier
-export {
-  FaceClassifier,
+// Re-export tf for convenience (direct import to avoid circular dependency)
+import * as tf from '@tensorflow/tfjs';
+
+export { FaceClassifier } from './FaceClassifier';
+export type {
   LabeledFaceDescriptor,
   ClassificationResult,
   ClassifyOptions,
   SerializedClassifier,
-  DistanceMetric
+  DistanceMetric,
 } from './FaceClassifier';
 
 // Model Trainer for fine-tuning
-export {
-  ModelTrainer,
+export { ModelTrainer, tripletLoss, contrastiveLoss } from './ModelTrainer';
+export type {
   TrainingConfig,
   TrainingCallbacks,
   TrainingLogs,
   EpochLogs,
   BatchLogs,
-  tripletLoss,
-  contrastiveLoss
 } from './ModelTrainer';
 
 // Dataset Loader
-export {
-  DatasetLoader,
-  TrainingDataset,
+export { DatasetLoader, TrainingDataset } from './DatasetLoader';
+export type {
   TrainingSample,
   DatasetMetadata,
   TrainingTask,
   DirectoryOptions,
   CSVOptions,
-  TensorDatasetOptions
+  TensorDatasetOptions,
 } from './DatasetLoader';
 
 // Image Augmentation
-export {
-  ImageAugmenter,
-  AugmentationPipeline,
-  AugmentationPresets,
+export { ImageAugmenter, AugmentationPipeline, AugmentationPresets } from './ImageAugmenter';
+export type {
   AugmentationConfig,
   AugmentationResult,
-  AugmentRange
+  AugmentRange,
 } from './ImageAugmenter';
 
 // Training Utilities
 export {
   EarlyStopping,
-  EarlyStoppingConfig,
   LRScheduler,
+  Checkpointer,
+  clipGradients,
+  createAdamW,
+  createCallbacks,
+} from './TrainingUtils';
+export type {
+  EarlyStoppingConfig,
   LRSchedulerConfig,
   ScheduleType,
-  Checkpointer,
   CheckpointConfig,
   GradientClipConfig,
-  clipGradients,
   AdamWConfig,
-  createAdamW,
   TrainingProgress,
-  createCallbacks
 } from './TrainingUtils';
 
 // Specialized Trainers for specific models
 export {
   AgeGenderTrainer,
-  AgeGenderLabels,
   ExpressionTrainer,
-  Expression,
   EXPRESSIONS,
   EmbeddingTrainer,
   createAgeGenderLabels,
   createExpressionLabels,
-  PUBLIC_DATASETS
+  PUBLIC_DATASETS,
 } from './SpecializedTrainers';
+export type { AgeGenderLabels, Expression } from './SpecializedTrainers';
 
 // Model Analysis and Baseline
-export {
-  ModelAnalyzer,
+export { ModelAnalyzer } from './ModelAnalyzer';
+export type {
   ParamStats,
   ModelAnalysis,
   BaselineMetrics,
   ModelComparison,
-  QuickAnalysis
+  QuickAnalysis,
 } from './ModelAnalyzer';
-
-// Re-export tf for convenience (direct import to avoid circular dependency)
-import * as tf from '@tensorflow/tfjs';
 export { tf };

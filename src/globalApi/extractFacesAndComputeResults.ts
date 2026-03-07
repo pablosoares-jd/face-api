@@ -1,9 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { FaceDetection } from '../classes/FaceDetection';
-import { extractFaces, extractFaceTensors, TNetInput } from '../dom/index';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { isWithFaceLandmarks, WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { FaceDetection } from '../classes/FaceDetection';
+import type { TNetInput } from '../dom/index';
+import { extractFaces, extractFaceTensors } from '../dom/index';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import { isWithFaceLandmarks } from '../factories/WithFaceLandmarks';
 
 export async function extractAllFacesAndComputeResults<TSource extends WithFaceDetection<{}>, TResult>(
   parentResults: TSource[],
@@ -39,7 +41,13 @@ export async function extractSingleFaceAndComputeResult<TSource extends WithFace
   return extractAllFacesAndComputeResults<TSource, TResult>(
     [parentResult],
     input,
-    async (faces) => computeResult(faces[0]),
+    async (faces) => {
+      const face = faces[0];
+      if (!face) {
+        throw new Error('extractSingleFaceAndComputeResult - no face extracted');
+      }
+      return computeResult(face);
+    },
     extractedFaces,
     getRectForAlignment,
   );

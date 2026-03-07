@@ -1,12 +1,14 @@
 /* eslint-disable max-classes-per-file */
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { AgeAndGenderPrediction } from '../ageGenderNet/types';
-import { TNetInput } from '../dom/index';
-import { extendWithAge, WithAge } from '../factories/WithAge';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
-import { extendWithGender, WithGender } from '../factories/WithGender';
+import type { AgeAndGenderPrediction } from '../ageGenderNet/types';
+import type { TNetInput } from '../dom/index';
+import type { WithAge } from '../factories/WithAge';
+import { extendWithAge } from '../factories/WithAge';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { WithGender } from '../factories/WithGender';
+import { extendWithGender } from '../factories/WithGender';
 import { ComposableTask } from './ComposableTask';
 import { ComputeAllFaceDescriptorsTask, ComputeSingleFaceDescriptorTask } from './ComputeFaceDescriptorsTasks';
 import { extractAllFacesAndComputeResults, extractSingleFaceAndComputeResult } from './extractFacesAndComputeResults';
@@ -36,7 +38,11 @@ export class PredictAllAgeAndGenderTask<TSource extends WithFaceDetection<{}>> e
       this.extractedFaces,
     );
     return parentResults.map((parentResult, i) => {
-      const { age, gender, genderProbability } = ageAndGenderByFace[i];
+      const prediction = ageAndGenderByFace[i];
+      if (!prediction) {
+        throw new Error(`PredictAllAgeAndGenderTask - no prediction at index ${i}`);
+      }
+      const { age, gender, genderProbability } = prediction;
       return extendWithAge(extendWithGender(parentResult, gender, genderProbability), age);
     });
   }
@@ -46,7 +52,9 @@ export class PredictAllAgeAndGenderTask<TSource extends WithFaceDetection<{}>> e
   }
 }
 
-export class PredictSingleAgeAndGenderTask<TSource extends WithFaceDetection<{}>> extends PredictAgeAndGenderTaskBase<WithAge<WithGender<TSource>> | undefined, TSource | undefined> {
+export class PredictSingleAgeAndGenderTask<
+  TSource extends WithFaceDetection<{}>,
+> extends PredictAgeAndGenderTaskBase<WithAge<WithGender<TSource>> | undefined, TSource | undefined> {
   public override async run(): Promise<WithAge<WithGender<TSource>> | undefined> {
     const parentResult = await this.parentTask;
     if (!parentResult) return undefined;
@@ -74,7 +82,9 @@ export class PredictAllAgeAndGenderWithFaceAlignmentTask<TSource extends WithFac
   }
 }
 
-export class PredictSingleAgeAndGenderWithFaceAlignmentTask<TSource extends WithFaceLandmarks<WithFaceDetection<{}>>> extends PredictSingleAgeAndGenderTask<TSource> {
+export class PredictSingleAgeAndGenderWithFaceAlignmentTask<
+  TSource extends WithFaceLandmarks<WithFaceDetection<{}>>,
+> extends PredictSingleAgeAndGenderTask<TSource> {
   override withFaceExpressions() {
     return new PredictSingleFaceExpressionsWithFaceAlignmentTask(this, this.input);
   }

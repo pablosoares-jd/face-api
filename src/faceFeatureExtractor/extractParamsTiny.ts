@@ -1,6 +1,7 @@
-import { extractWeightsFactory, ParamMapping } from '../common/index';
+import type { ParamMapping } from '../common/index';
+import { extractWeightsFactory } from '../common/index';
 import { extractorsFactory } from './extractorsFactory';
-import { TinyFaceFeatureExtractorParams } from './types';
+import type { TinyFaceFeatureExtractorParams } from './types';
 
 export function extractParamsTiny(weights: Float32Array): { params: TinyFaceFeatureExtractorParams, paramMappings: ParamMapping[] } {
   const paramMappings: ParamMapping[] = [];

@@ -34,6 +34,7 @@
     "@typescript-eslint/no-var-requires": "off",
     "@typescript-eslint/no-empty-object-type": "off",
     "@typescript-eslint/no-require-imports": "off",
+    "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
     "@typescript-eslint/consistent-type-imports": ["warn", { "prefer": "type-imports" }],
     "camelcase": "off",
@@ -66,7 +67,7 @@
     "no-return-assign": "off",
     "no-underscore-dangle": "off",
     "no-promise-executor-return": "off",
-    "node/no-missing-import": ["error", { "tryExtensions": [".js", ".json", ".ts"] }],
+    "node/no-missing-import": ["error", { "tryExtensions": [".js", ".json", ".ts"], "allowModules": ["@tensorflow/tfjs-node", "@tensorflow/tfjs-node-gpu"] }],
     "node/no-unpublished-import": "off",
     "node/no-unpublished-require": "off",
     "node/no-unsupported-features/es-syntax": "off",
@@ -81,7 +82,20 @@
     "promise/no-nesting": "off",
     "radix": "off",
     "eqeqeq": ["error", "always", { "null": "ignore" }],
-    "no-var": "error"
+    "no-var": "error",
+    "no-use-before-define": "off",
+    "@typescript-eslint/no-use-before-define": ["error", { "functions": false, "classes": false, "variables": false, "typedefs": false }],
+    "max-classes-per-file": "off",
+    "no-shadow": "off",
+    "@typescript-eslint/no-shadow": "error",
+    "no-nested-ternary": "off",
+    "no-new": "off",
+    "default-case": "off",
+    "no-undef": "off",
+    "no-empty-function": "off",
+    "@typescript-eslint/no-empty-function": "warn",
+    "no-useless-constructor": "off",
+    "@typescript-eslint/no-useless-constructor": "warn"
   },
   "overrides": [
     {

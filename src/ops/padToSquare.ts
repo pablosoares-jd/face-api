@@ -11,7 +11,13 @@ import * as tf from '@tensorflow/tfjs';
  */
 export function padToSquare(imgTensor: tf.Tensor4D, isCenterImage = false): tf.Tensor4D {
   return tf.tidy(() => {
-    const [height, width] = imgTensor.shape.slice(1);
+    const shapeSlice = imgTensor.shape.slice(1);
+    const height = shapeSlice[0];
+    const width = shapeSlice[1];
+
+    if (height === undefined || width === undefined) {
+      throw new Error('padToSquare - invalid tensor shape');
+    }
 
     // No padding needed if already square
     if (height === width) return imgTensor;
@@ -34,7 +40,7 @@ export function padToSquare(imgTensor: tf.Tensor4D, isCenterImage = false): tf.T
     // Build padding configuration: [batch, height, width, channels]
     // tf.pad expects [[beforeBatch, afterBatch], [beforeH, afterH], [beforeW, afterW], [beforeC, afterC]]
     const paddings: [number, number][] = isHeightLarger
-      ? [[0, 0], [0, 0], [padBefore, padAfter], [0, 0]]  // Pad width
+      ? [[0, 0], [0, 0], [padBefore, padAfter], [0, 0]] // Pad width
       : [[0, 0], [padBefore, padAfter], [0, 0], [0, 0]]; // Pad height
 
     return tf.pad(imgTensor, paddings) as tf.Tensor4D;

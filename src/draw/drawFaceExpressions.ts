@@ -1,13 +1,20 @@
-import { IPoint, Point } from '../classes/index';
+import type { IPoint } from '../classes/index';
+import { Point } from '../classes/index';
 import { FaceExpressions } from '../faceExpressionNet/index';
 import { isWithFaceDetection } from '../factories/WithFaceDetection';
-import { isWithFaceExpressions, WithFaceExpressions } from '../factories/WithFaceExpressions';
+import type { WithFaceExpressions } from '../factories/WithFaceExpressions';
+import { isWithFaceExpressions } from '../factories/WithFaceExpressions';
 import { round } from '../utils/index';
 import { DrawTextField } from './DrawTextField';
 
 export type DrawFaceExpressionsInput = FaceExpressions | WithFaceExpressions<{}>
 
-export function drawFaceExpressions(canvasArg: string | HTMLCanvasElement, faceExpressions: DrawFaceExpressionsInput | Array<DrawFaceExpressionsInput>, minConfidence = 0.1, textFieldAnchor?: IPoint) {
+export function drawFaceExpressions(
+  canvasArg: string | HTMLCanvasElement,
+  faceExpressions: DrawFaceExpressionsInput | Array<DrawFaceExpressionsInput>,
+  minConfidence = 0.1,
+  textFieldAnchor?: IPoint,
+) {
   const faceExpressionsArray = Array.isArray(faceExpressions) ? faceExpressions : [faceExpressions];
 
   faceExpressionsArray.forEach((e) => {

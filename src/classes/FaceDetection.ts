@@ -1,7 +1,7 @@
-import { Box } from './Box';
-import { IDimensions } from './Dimensions';
+import type { Box } from './Box';
+import type { IDimensions } from './Dimensions';
 import { ObjectDetection } from './ObjectDetection';
-import { Rect } from './Rect';
+import type { Rect } from './Rect';
 
 export interface IFaceDetection {
   score: number

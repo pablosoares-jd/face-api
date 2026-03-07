@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { FCParams } from './types';
+import type { FCParams } from './types';
 
 export function fullyConnectedLayer(
   x: tf.Tensor2D,

@@ -1,7 +1,7 @@
-import { TNetInput } from '../dom/index';
+import type { TNetInput } from '../dom/index';
 import { SsdMobilenetv1Options } from '../ssdMobilenetv1/SsdMobilenetv1Options';
 import { DetectAllFacesTask, DetectSingleFaceTask } from './DetectFacesTasks';
-import { FaceDetectionOptions } from './types';
+import type { FaceDetectionOptions } from './types';
 
 export function detectSingleFace(input: TNetInput, options: FaceDetectionOptions = new SsdMobilenetv1Options()): DetectSingleFaceTask {
   return new DetectSingleFaceTask(input, options);

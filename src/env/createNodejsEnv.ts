@@ -1,6 +1,6 @@
 /* eslint-disable max-classes-per-file */
 import { createFileSystem } from './createFileSystem';
-import { Environment } from './types';
+import type { Environment } from './types';
 
 export function createNodejsEnv(): Environment {
   const Canvas: (new () => HTMLCanvasElement) = (global as any)['Canvas'] || global.HTMLCanvasElement;

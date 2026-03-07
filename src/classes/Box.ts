@@ -1,15 +1,17 @@
 import { isDimensions, isValidNumber } from '../utils/index';
-import { IBoundingBox } from './BoundingBox';
-import { IDimensions } from './Dimensions';
+import type { IBoundingBox } from './BoundingBox';
+import type { IDimensions } from './Dimensions';
 import { Point } from './Point';
-import { IRect } from './Rect';
+import type { IRect } from './Rect';
 
-export class Box<BoxType = any> implements IBoundingBox, IRect {
-  public static isRect(rect: any): boolean {
-    return !!rect && [rect.x, rect.y, rect.width, rect.height].every(isValidNumber);
+export class Box<BoxType = unknown> implements IBoundingBox, IRect {
+  public static isRect(rect: unknown): rect is IRect {
+    if (!rect || typeof rect !== 'object') return false;
+    const r = rect as IRect;
+    return [r.x, r.y, r.width, r.height].every(isValidNumber);
   }
 
-  public static assertIsValidBox(box: any, callee: string, allowNegativeDimensions = false) {
+  public static assertIsValidBox(box: unknown, callee: string, allowNegativeDimensions = false) {
     if (!Box.isRect(box)) {
       throw new Error(`${callee} - invalid box: ${JSON.stringify(box)}, expected object with properties x, y, width, height`);
     }
@@ -78,18 +80,20 @@ export class Box<BoxType = any> implements IBoundingBox, IRect {
   public get bottomRight(): Point { return new Point(this.right, this.bottom); }
 
   public round(): Box<BoxType> {
-    const [x, y, width, height] = [this.x, this.y, this.width, this.height]
-      .map((val) => Math.round(val));
     return new Box({
-      x, y, width, height,
+      x: Math.round(this.x),
+      y: Math.round(this.y),
+      width: Math.round(this.width),
+      height: Math.round(this.height),
     });
   }
 
   public floor(): Box<BoxType> {
-    const [x, y, width, height] = [this.x, this.y, this.width, this.height]
-      .map((val) => Math.floor(val));
     return new Box({
-      x, y, width, height,
+      x: Math.floor(this.x),
+      y: Math.floor(this.y),
+      width: Math.floor(this.width),
+      height: Math.floor(this.height),
     });
   }
 

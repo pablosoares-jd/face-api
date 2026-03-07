@@ -2,13 +2,16 @@ import * as tf from '@tensorflow/tfjs';
 
 import { Point, Rect } from '../classes/index';
 import { FaceDetection } from '../classes/FaceDetection';
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
+import { nonMaxSuppressionFast } from '../ops/nonMaxSuppression';
 import { SsdMobilenetv1 } from '../ssdMobilenetv1/SsdMobilenetv1';
-import { BlazeFaceOptions, IBlazeFaceOptions } from './BlazeFaceOptions';
+import type { IBlazeFaceOptions } from './BlazeFaceOptions';
+import { BlazeFaceOptions } from './BlazeFaceOptions';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
-import { NetParams, ConvBlockParams } from './types';
+import type { NetParams, ConvBlockParams } from './types';
 
 /**
  * Anchor configuration for BlazeFace.
@@ -97,6 +100,8 @@ export class BlazeFaceDetection extends FaceDetection {
 export class BlazeFace extends NeuralNetwork<NetParams> {
   private _fallbackNet: SsdMobilenetv1 | null = null;
 
+  private _graphModel: tf.GraphModel | null = null;
+
   private _anchors: Anchor[] = [];
 
   private _currentInputSize: 128 | 256 = 128;
@@ -107,6 +112,13 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
 
   constructor() {
     super('BlazeFace');
+  }
+
+  /**
+   * Check if graph model is loaded (for graph-model format).
+   */
+  public get isGraphModelLoaded(): boolean {
+    return this._graphModel !== null;
   }
 
   /**
@@ -144,11 +156,32 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
 
   /**
    * Load BlazeFace model with optional fallback to SSD MobileNetv1.
+   * Tries graph-model format first, then layers-model, then falls back to SSD.
    */
   public override async load(weightsOrUrl: Float32Array | string | undefined): Promise<void> {
+    // If it's a string URL, try loading as graph-model first
+    if (typeof weightsOrUrl === 'string') {
+      try {
+        // Try graph-model format (blazeface_model-weights_manifest.json has format: "graph-model")
+        const graphModelUrl = weightsOrUrl.endsWith('/')
+          ? `${weightsOrUrl}blazeface_model-weights_manifest.json`
+          : `${weightsOrUrl}/blazeface_model-weights_manifest.json`;
+
+        this._graphModel = await tf.loadGraphModel(graphModelUrl);
+        this._anchors = this.generateAnchors(128);
+        console.info('BlazeFace loaded as graph-model');
+        return;
+      } catch (graphErr) {
+        // Graph model failed, try layers-model
+        console.info('BlazeFace graph-model not found, trying layers-model...', graphErr);
+      }
+    }
+
+    // Try layers-model format
     try {
       await super.load(weightsOrUrl);
       this._anchors = this.generateAnchors(128);
+      console.info('BlazeFace loaded as layers-model');
     } catch {
       console.warn('BlazeFace model not found, loading SSD MobileNetv1 fallback...');
       this._fallbackNet = new SsdMobilenetv1();
@@ -167,10 +200,10 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
   }
 
   /**
-   * Check if the primary model is loaded.
+   * Check if the primary model is loaded (either graph-model or layers-model).
    */
   public get isPrimaryLoaded(): boolean {
-    return !!this.params;
+    return this._graphModel !== null || !!this.params;
   }
 
   /**
@@ -181,12 +214,69 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
   }
 
   /**
+   * Check which model type is loaded.
+   */
+  public get modelType(): 'graph' | 'layers' | 'fallback' | 'none' {
+    if (this._graphModel) return 'graph';
+    if (this.params) return 'layers';
+    if (this._fallbackNet?.isLoaded) return 'fallback';
+    return 'none';
+  }
+
+  /**
+   * Forward pass through the graph model.
+   * Graph model output format: [batch, num_detections, 17]
+   * - 4 values for bounding box (center_x, center_y, width, height)
+   * - 1 value for score
+   * - 12 values for keypoints (6 points × 2 coords)
+   */
+  private forwardGraphModel(input: NetInput, inputSize: 128 | 256 = 128): { rawBoxes: tf.Tensor2D; scores: tf.Tensor1D } {
+    if (!this._graphModel) {
+      throw new Error('BlazeFace graph model not loaded');
+    }
+
+    return tf.tidy(() => {
+      const batchTensor = tf.cast(input.toBatchTensor(inputSize, false), 'float32');
+
+      // Normalize to [0, 1] - same as MediaPipe BlazeFace
+      const normalized = tf.div(batchTensor, 255) as tf.Tensor4D;
+
+      // Run inference
+      const output = this._graphModel!.predict(normalized) as tf.Tensor;
+
+      // Output shape is [1, num_anchors, 17]
+      // Slice into boxes (first 16 values) and scores (last value)
+      const outputReshaped = tf.reshape(output, [-1, 17]);
+
+      // Extract boxes (indices 0-15) and scores (index 16, but sometimes in different position)
+      // BlazeFace outputs: [x_center, y_center, w, h, kp1_x, kp1_y, ..., kp6_x, kp6_y, score]
+      // We need to reshape to match our expected format
+      const rawBoxes = tf.slice(outputReshaped, [0, 0], [-1, 16]) as tf.Tensor2D;
+      const scoresRaw = tf.slice(outputReshaped, [0, 16], [-1, 1]);
+      const scores = tf.sigmoid(scoresRaw).squeeze([1]) as tf.Tensor1D;
+
+      return { rawBoxes, scores };
+    });
+  }
+
+  /**
    * Forward pass through the network.
    * @param input The input tensor
    * @param inputSize The input size (128 or 256)
    * @returns Raw regressor output (16 values per detection) and scores
    */
   public forwardInput(input: NetInput, inputSize: 128 | 256 = 128): { rawBoxes: tf.Tensor2D; scores: tf.Tensor1D } {
+    // Use graph model if available
+    if (this._graphModel) {
+      // Regenerate anchors if input size changed
+      if (this._anchors.length === 0 || this._currentInputSize !== inputSize) {
+        this._anchors = this.generateAnchors(inputSize);
+        this._currentInputSize = inputSize;
+      }
+      return this.forwardGraphModel(input, inputSize);
+    }
+
+    // Use layers model
     const { params } = this;
     if (!params) {
       throw new Error('BlazeFace - load model before inference');
@@ -343,11 +433,17 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
     try {
       const scoresData = await scores.data();
 
+      // Defensive null check for scoresData
+      if (!scoresData || scoresData.length === 0) {
+        console.warn('BlazeFace: No scores data returned from model');
+        return [];
+      }
+
       // Decode detections with keypoints
       const { boxes: decodedBoxes, keypoints: decodedKeypoints } = await this.decodeDetections(rawBoxes, opts.inputSize);
 
-      // Non-max suppression
-      const selectedIndices = this.nonMaxSuppression(
+      // Non-max suppression using unified implementation
+      const selectedIndices = nonMaxSuppressionFast(
         decodedBoxes,
         Array.from(scoresData),
         opts.maxResults,
@@ -427,85 +523,19 @@ export class BlazeFace extends NeuralNetwork<NetParams> {
   }
 
   /**
-   * Non-maximum suppression for detected boxes.
-   */
-  private nonMaxSuppression(
-    boxes: number[][],
-    scores: number[],
-    maxResults: number,
-    iouThreshold: number,
-    scoreThreshold: number,
-  ): number[] {
-    const candidates = scores
-      .map((score, idx) => ({ score, idx }))
-      .filter((c) => c.score >= scoreThreshold)
-      .sort((a, b) => b.score - a.score);
-
-    const selected: number[] = [];
-
-    for (const candidate of candidates) {
-      if (selected.length >= maxResults) break;
-
-      const candidateBox = boxes[candidate.idx];
-      if (!candidateBox) continue;
-
-      let dominated = false;
-      for (const selectedIdx of selected) {
-        const selectedBox = boxes[selectedIdx];
-        if (!selectedBox) continue;
-
-        const iou = this.calculateIOU(candidateBox, selectedBox);
-        if (iou > iouThreshold) {
-          dominated = true;
-          break;
-        }
-      }
-
-      if (!dominated) {
-        selected.push(candidate.idx);
-      }
-    }
-
-    return selected;
-  }
-
-  /**
-   * Calculate IOU between two boxes.
-   */
-  private calculateIOU(boxA: number[], boxB: number[]): number {
-    const topA = boxA[0] ?? 0;
-    const leftA = boxA[1] ?? 0;
-    const bottomA = boxA[2] ?? 0;
-    const rightA = boxA[3] ?? 0;
-
-    const topB = boxB[0] ?? 0;
-    const leftB = boxB[1] ?? 0;
-    const bottomB = boxB[2] ?? 0;
-    const rightB = boxB[3] ?? 0;
-
-    const intersectTop = Math.max(topA, topB);
-    const intersectLeft = Math.max(leftA, leftB);
-    const intersectBottom = Math.min(bottomA, bottomB);
-    const intersectRight = Math.min(rightA, rightB);
-
-    const intersectWidth = Math.max(0, intersectRight - intersectLeft);
-    const intersectHeight = Math.max(0, intersectBottom - intersectTop);
-    const intersectArea = intersectWidth * intersectHeight;
-
-    const areaA = (bottomA - topA) * (rightA - leftA);
-    const areaB = (bottomB - topB) * (rightB - leftB);
-
-    const unionArea = areaA + areaB - intersectArea;
-    return unionArea > 0 ? intersectArea / unionArea : 0;
-  }
-
-  /**
    * Dispose of resources.
    */
   public override dispose(throwOnRedispose = true): void {
-    if (this.isPrimaryLoaded) {
+    // Dispose graph model if loaded
+    if (this._graphModel) {
+      this._graphModel.dispose();
+      this._graphModel = null;
+    }
+    // Dispose layers model if loaded
+    if (this.params) {
       super.dispose(throwOnRedispose);
     }
+    // Dispose fallback
     if (this._fallbackNet) {
       this._fallbackNet.dispose(throwOnRedispose);
       this._fallbackNet = null;

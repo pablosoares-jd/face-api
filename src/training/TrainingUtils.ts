@@ -45,7 +45,7 @@ export class EarlyStopping {
       minDelta: config.minDelta ?? 0.001,
       patience: config.patience ?? 5,
       restoreBestWeights: config.restoreBestWeights ?? true,
-      verbose: config.verbose ?? true
+      verbose: config.verbose ?? true,
     };
   }
 
@@ -63,7 +63,7 @@ export class EarlyStopping {
       this._waitCount = 0;
 
       if (this._config.verbose) {
-        console.log(`EarlyStopping: ${this._config.monitor} improved to ${currentValue.toFixed(6)}`);
+        console.info(`EarlyStopping: ${this._config.monitor} improved to ${currentValue.toFixed(6)}`);
       }
       return false;
     }
@@ -73,17 +73,17 @@ export class EarlyStopping {
     if (this._waitCount >= this._config.patience) {
       this._stopped = true;
       if (this._config.verbose) {
-        console.log(
-          `EarlyStopping: Stopped at epoch ${epoch + 1}. ` +
-          `Best ${this._config.monitor}: ${this._bestValue.toFixed(6)} at epoch ${this._bestEpoch + 1}`
+        console.info(
+          `EarlyStopping: Stopped at epoch ${epoch + 1}. `
+          + `Best ${this._config.monitor}: ${this._bestValue.toFixed(6)} at epoch ${this._bestEpoch + 1}`,
         );
       }
       return true;
     }
 
     if (this._config.verbose) {
-      console.log(
-        `EarlyStopping: No improvement for ${this._waitCount}/${this._config.patience} epochs`
+      console.info(
+        `EarlyStopping: No improvement for ${this._waitCount}/${this._config.patience} epochs`,
       );
     }
 
@@ -177,7 +177,7 @@ export class LRScheduler {
       decayRate: 0.1,
       minLR: 1e-7,
       patience: 3,
-      ...config
+      ...config,
     };
     this._currentLR = config.initialLR;
   }
@@ -198,18 +198,18 @@ export class LRScheduler {
       case 'step':
         if (stepSize) {
           const numDecays = Math.floor(epoch / stepSize);
-          lr = initialLR * Math.pow(decayRate!, numDecays);
+          lr = initialLR * (decayRate!) ** numDecays;
         }
         break;
 
       case 'exponential':
-        lr = initialLR * Math.pow(decayRate!, epoch);
+        lr = initialLR * (decayRate!) ** epoch;
         break;
 
       case 'cosine':
         if (totalEpochs) {
-          lr = minLR! + 0.5 * (initialLR - minLR!) *
-            (1 + Math.cos(Math.PI * epoch / totalEpochs));
+          lr = minLR! + 0.5 * (initialLR - minLR!)
+            * (1 + Math.cos(Math.PI * epoch / totalEpochs));
         }
         break;
 
@@ -219,8 +219,8 @@ export class LRScheduler {
         } else if (totalEpochs) {
           const adjustedEpoch = epoch - (warmupEpochs || 0);
           const adjustedTotal = totalEpochs - (warmupEpochs || 0);
-          lr = minLR! + 0.5 * (initialLR - minLR!) *
-            (1 + Math.cos(Math.PI * adjustedEpoch / adjustedTotal));
+          lr = minLR! + 0.5 * (initialLR - minLR!)
+            * (1 + Math.cos(Math.PI * adjustedEpoch / adjustedTotal));
         }
         break;
 
@@ -234,7 +234,7 @@ export class LRScheduler {
             if (this._waitCount >= (this._config.patience || 3)) {
               this._currentLR = Math.max(this._currentLR * decayRate!, minLR!);
               this._waitCount = 0;
-              console.log(`LRScheduler: Reduced LR to ${this._currentLR.toExponential(2)}`);
+              console.info(`LRScheduler: Reduced LR to ${this._currentLR.toExponential(2)}`);
             }
           }
           lr = this._currentLR;
@@ -278,7 +278,7 @@ export interface GradientClipConfig {
  */
 export function clipGradients(
   gradients: tf.NamedTensorMap,
-  config: GradientClipConfig
+  config: GradientClipConfig,
 ): tf.NamedTensorMap {
   return tf.tidy(() => {
     const clipped: tf.NamedTensorMap = {};
@@ -291,9 +291,9 @@ export function clipGradients(
     } else if (config.clipNorm !== undefined) {
       // Clip by global norm
       const grads = Object.values(gradients);
-      const squaredNorms = grads.map(g => tf.sum(tf.square(g)));
+      const squaredNorms = grads.map((g) => tf.sum(tf.square(g)));
       const globalNorm = tf.sqrt(tf.addN(squaredNorms));
-      const globalNormValue = globalNorm.dataSync()[0];
+      const globalNormValue = globalNorm.dataSync()[0] ?? 0;
 
       const scale = globalNormValue > config.clipNorm
         ? config.clipNorm / globalNormValue
@@ -343,7 +343,7 @@ export class Checkpointer {
       maxToKeep: config.maxToKeep ?? 3,
       saveBestOnly: config.saveBestOnly ?? true,
       monitor: config.monitor ?? 'valLoss',
-      prefix: config.prefix ?? 'checkpoint'
+      prefix: config.prefix ?? 'checkpoint',
     };
   }
 
@@ -370,7 +370,7 @@ export class Checkpointer {
     this._checkpoints.push({
       epoch,
       value: currentValue,
-      weights: new Float32Array(weights)
+      weights: new Float32Array(weights),
     });
 
     // Remove old checkpoints if exceeding max
@@ -378,8 +378,8 @@ export class Checkpointer {
       this._checkpoints.shift();
     }
 
-    console.log(
-      `Checkpoint: Saved epoch ${epoch + 1} (${this._config.monitor}: ${currentValue.toFixed(6)})`
+    console.info(
+      `Checkpoint: Saved epoch ${epoch + 1} (${this._config.monitor}: ${currentValue.toFixed(6)})`,
     );
 
     return true;
@@ -391,9 +391,7 @@ export class Checkpointer {
   public getBest(): { epoch: number; value: number; weights: Float32Array } | null {
     if (this._checkpoints.length === 0) return null;
 
-    return this._checkpoints.reduce((best, curr) =>
-      curr.value < best.value ? curr : best
-    );
+    return this._checkpoints.reduce((best, curr) => (curr.value < best.value ? curr : best));
   }
 
   /**
@@ -401,14 +399,14 @@ export class Checkpointer {
    */
   public getLatest(): { epoch: number; value: number; weights: Float32Array } | null {
     if (this._checkpoints.length === 0) return null;
-    return this._checkpoints[this._checkpoints.length - 1];
+    return this._checkpoints[this._checkpoints.length - 1] ?? null;
   }
 
   /**
    * Get all checkpoints.
    */
   public getAll(): Array<{ epoch: number; value: number }> {
-    return this._checkpoints.map(c => ({ epoch: c.epoch, value: c.value }));
+    return this._checkpoints.map((c) => ({ epoch: c.epoch, value: c.value }));
   }
 
   /**
@@ -448,7 +446,7 @@ export function createAdamW(config: AdamWConfig = {}): tf.Optimizer {
     beta1 = 0.9,
     beta2 = 0.999,
     epsilon = 1e-7,
-    weightDecay = 0.01
+    weightDecay = 0.01,
   } = config;
 
   // Create base Adam optimizer
@@ -535,7 +533,7 @@ export class TrainingProgress {
     bestValLoss: number | undefined;
     finalLoss: number;
     finalValLoss: number | undefined;
-  } {
+    } {
     return {
       totalTime: this.getElapsed(),
       avgEpochTime: this._epochTimes.length > 0
@@ -544,7 +542,7 @@ export class TrainingProgress {
       bestLoss: Math.min(...this._losses),
       bestValLoss: this._valLosses.length > 0 ? Math.min(...this._valLosses) : undefined,
       finalLoss: this._losses[this._losses.length - 1] ?? 0,
-      finalValLoss: this._valLosses[this._valLosses.length - 1]
+      finalValLoss: this._valLosses[this._valLosses.length - 1],
     };
   }
 
@@ -592,7 +590,7 @@ export function createCallbacks(options: {
     onTrainBegin: () => {
       progress.start();
       if (options.verbose) {
-        console.log('Training started...');
+        console.info('Training started...');
       }
     },
 
@@ -608,14 +606,23 @@ export function createCallbacks(options: {
     onTrainEnd: (logs) => {
       const summary = progress.getSummary();
       if (options.verbose) {
-        console.log('\n=== Training Complete ===');
-        console.log(`Total time: ${TrainingProgress.formatTime(summary.totalTime)}`);
-        console.log(`Best loss: ${summary.bestLoss.toFixed(6)}`);
+        console.info('\n=== Training Complete ===');
+        console.info(`Epochs completed: ${logs.epochs}`);
+        console.info(`Total batches: ${logs.totalBatches}`);
+        console.info(`Final loss: ${logs.finalLoss.toFixed(6)}`);
+        if (logs.finalValLoss !== undefined) {
+          console.info(`Final val_loss: ${logs.finalValLoss.toFixed(6)}`);
+        }
+        if (logs.stoppedEarly) {
+          console.info('Training stopped early due to early stopping criteria');
+        }
+        console.info(`Total time: ${TrainingProgress.formatTime(summary.totalTime)}`);
+        console.info(`Best loss: ${summary.bestLoss.toFixed(6)}`);
         if (summary.bestValLoss !== undefined) {
-          console.log(`Best val_loss: ${summary.bestValLoss.toFixed(6)}`);
+          console.info(`Best val_loss: ${summary.bestValLoss.toFixed(6)}`);
         }
       }
-    }
+    },
   };
 
   return { callbacks, earlyStopping, lrScheduler, checkpointer, progress };

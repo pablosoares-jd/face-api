@@ -3,7 +3,7 @@ import { awaitMediaLoaded } from './awaitMediaLoaded';
 import { isMediaElement } from './isMediaElement';
 import { NetInput } from './NetInput';
 import { resolveInput } from './resolveInput';
-import { TNetInput } from './types';
+import type { TNetInput, TResolvedNetInput } from './types';
 
 /**
  * Validates the input to make sure, they are valid net inputs and awaits all media elements
@@ -30,6 +30,15 @@ export async function toNetInput(inputs: TNetInput): Promise<NetInput> {
     }
   });
   // wait for all media elements being loaded
-  await Promise.all(inputArray.map((input) => isMediaElement(input) && awaitMediaLoaded(input)));
-  return new NetInput(inputArray, Array.isArray(inputs));
+  // Filter to only media elements, then await their loading
+  const mediaElements = inputArray.filter(isMediaElement);
+  if (mediaElements.length > 0) {
+    try {
+      await Promise.all(mediaElements.map((media) => awaitMediaLoaded(media)));
+    } catch (err) {
+      throw new Error(`toNetInput - failed to load media element: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  return new NetInput(inputArray as TResolvedNetInput[], Array.isArray(inputs));
 }

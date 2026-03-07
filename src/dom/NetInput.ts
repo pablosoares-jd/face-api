@@ -1,12 +1,12 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { Dimensions } from '../classes/Dimensions';
+import type { Dimensions } from '../classes/Dimensions';
 import { env } from '../env/index';
 import { padToSquare } from '../ops/padToSquare';
 import { computeReshapedDimensions, isTensor3D, isTensor4D, range } from '../utils/index';
 import { createCanvasFromMedia } from './createCanvas';
 import { imageToSquare } from './imageToSquare';
-import { TResolvedNetInput } from './types';
+import type { TResolvedNetInput } from './types';
 
 export class NetInput {
   private _imageTensors: Array<tf.Tensor3D | tf.Tensor4D> = [];
@@ -47,8 +47,10 @@ export class NetInput {
         return;
       }
 
-      // @ts-ignore
-      const canvas = (input as any) instanceof env.getEnv().Canvas ? input : createCanvasFromMedia(input);
+      // Check if input is already a Canvas (works in both browser and Node.js with canvas package)
+      const CanvasClass = env.getEnv().Canvas;
+      const isCanvas = CanvasClass && input instanceof (CanvasClass as { new(...args: unknown[]): unknown });
+      const canvas = isCanvas ? input : createCanvasFromMedia(input as HTMLImageElement | HTMLVideoElement | ImageData);
       this._canvases[idx] = canvas as HTMLCanvasElement;
       this._inputDimensions[idx] = [canvas.height, canvas.width, 3];
     });
@@ -85,19 +87,39 @@ export class NetInput {
   }
 
   public getInput(batchIdx: number): tf.Tensor3D | tf.Tensor4D | HTMLCanvasElement {
-    return this.canvases[batchIdx] || this.imageTensors[batchIdx];
+    const canvas = this.canvases[batchIdx];
+    const tensor = this.imageTensors[batchIdx];
+    const result = canvas || tensor;
+    if (!result) {
+      throw new Error(`NetInput.getInput - no input at index ${batchIdx}`);
+    }
+    return result;
   }
 
   public getInputDimensions(batchIdx: number): number[] {
-    return this._inputDimensions[batchIdx];
+    const dims = this._inputDimensions[batchIdx];
+    if (!dims) {
+      throw new Error(`NetInput.getInputDimensions - no dimensions at index ${batchIdx}`);
+    }
+    return dims;
   }
 
   public getInputHeight(batchIdx: number): number {
-    return this._inputDimensions[batchIdx][0];
+    const dims = this.getInputDimensions(batchIdx);
+    const height = dims[0];
+    if (height === undefined) {
+      throw new Error(`NetInput.getInputHeight - invalid dimensions at index ${batchIdx}`);
+    }
+    return height;
   }
 
   public getInputWidth(batchIdx: number): number {
-    return this._inputDimensions[batchIdx][1];
+    const dims = this.getInputDimensions(batchIdx);
+    const width = dims[1];
+    if (width === undefined) {
+      throw new Error(`NetInput.getInputWidth - invalid dimensions at index ${batchIdx}`);
+    }
+    return width;
   }
 
   public getReshapedInputDimensions(batchIdx: number): Dimensions {

@@ -5,6 +5,9 @@ export * from './normalize';
 export * from './padToSquare';
 export * from './shuffleArray';
 
+// Re-export unified NMS function for convenience
+export { nonMaxSuppressionFast } from './nonMaxSuppression';
+
 export function sigmoid(x: number) {
   return 1 / (1 + Math.exp(-x));
 }

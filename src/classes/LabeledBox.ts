@@ -1,7 +1,7 @@
 import { isValidNumber } from '../utils/index';
-import { IBoundingBox } from './BoundingBox';
+import type { IBoundingBox } from './BoundingBox';
 import { Box } from './Box';
-import { IRect } from './Rect';
+import type { IRect } from './Rect';
 
 export class LabeledBox extends Box {
   public static assertIsValidLabeledBox(box: any, callee: string) {

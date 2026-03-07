@@ -1,7 +1,7 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { ParamMapping } from '../common/types';
-import { NetParams, ConvBnParams, IRSEBlockParams, SEParams, StemParams, FCParams } from './types';
+import type { ParamMapping } from '../common/types';
+import type { NetParams, ConvBnParams, IRSEBlockParams, SEParams, StemParams, FCParams } from './types';
 
 function extractConvBnParams(
   weightMap: tf.NamedTensorMap,

@@ -1,10 +1,11 @@
 /* eslint-disable max-classes-per-file */
-import { IPoint } from '../classes/index';
+import type { IPoint } from '../classes/index';
 import { FaceLandmarks } from '../classes/FaceLandmarks';
 import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
 import { getContext2dOrThrow } from '../dom/getContext2dOrThrow';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { isWithFaceLandmarks, WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import { isWithFaceLandmarks } from '../factories/WithFaceLandmarks';
 import { drawContour } from './drawContour';
 
 export interface IDrawFaceLandmarksOptions {

@@ -1,8 +1,9 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { ConvParams, extractWeightsFactory, ExtractWeightsFunction, ParamMapping } from '../common/index';
+import type { ConvParams, ExtractWeightsFunction, ParamMapping } from '../common/index';
+import { extractWeightsFactory } from '../common/index';
 import { isFloat } from '../utils/index';
-import { ConvLayerParams, NetParams, ResidualLayerParams, ScaleLayerParams } from './types';
+import type { ConvLayerParams, NetParams, ResidualLayerParams, ScaleLayerParams } from './types';
 
 function extractorsFactory(extractWeights: ExtractWeightsFunction, paramMappings: ParamMapping[]) {
   function extractFilterValues(numFilterValues: number, numFilters: number, filterSize: number): tf.Tensor4D {

@@ -1,17 +1,28 @@
 /* eslint-disable max-classes-per-file */
 import * as tf from '@tensorflow/tfjs';
 
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { extractFaces, extractFaceTensors, TNetInput } from '../dom/index';
-import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
-import { FaceLandmark68TinyNet } from '../faceLandmarkNet/FaceLandmark68TinyNet';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { extendWithFaceLandmarks, WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { TNetInput } from '../dom/index';
+import { extractFaces, extractFaceTensors } from '../dom/index';
+import type { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
+import type { FaceLandmark68TinyNet } from '../faceLandmarkNet/FaceLandmark68TinyNet';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import { extendWithFaceLandmarks } from '../factories/WithFaceLandmarks';
 import { ComposableTask } from './ComposableTask';
-import { ComputeAllFaceDescriptorsTask, ComputeSingleFaceDescriptorTask } from './ComputeFaceDescriptorsTasks';
+import {
+  ComputeAllFaceDescriptorsTask,
+  ComputeSingleFaceDescriptorTask,
+} from './ComputeFaceDescriptorsTasks';
 import { nets } from './nets';
-import { PredictAllAgeAndGenderWithFaceAlignmentTask, PredictSingleAgeAndGenderWithFaceAlignmentTask } from './PredictAgeAndGenderTask';
-import { PredictAllFaceExpressionsWithFaceAlignmentTask, PredictSingleFaceExpressionsWithFaceAlignmentTask } from './PredictFaceExpressionsTask';
+import {
+  PredictAllAgeAndGenderWithFaceAlignmentTask,
+  PredictSingleAgeAndGenderWithFaceAlignmentTask,
+} from './PredictAgeAndGenderTask';
+import {
+  PredictAllFaceExpressionsWithFaceAlignmentTask,
+  PredictSingleFaceExpressionsWithFaceAlignmentTask,
+} from './PredictFaceExpressionsTask';
 
 export class DetectFaceLandmarksTaskBase<TReturn, TParentReturn> extends ComposableTask<TReturn> {
   constructor(
@@ -41,9 +52,17 @@ export class DetectAllFaceLandmarksTask<TSource extends WithFaceDetection<{}>> e
       : await extractFaces(this.input, detections);
     const faceLandmarksByFace = await Promise.all(faces.map((face) => this.landmarkNet.detectLandmarks(face))) as FaceLandmarks68[];
     faces.forEach((f) => f instanceof tf.Tensor && f.dispose());
-    const result = parentResults
-      .filter((_parentResult, i) => faceLandmarksByFace[i])
-      .map((parentResult, i) => extendWithFaceLandmarks<TSource>(parentResult, faceLandmarksByFace[i]));
+
+    // Use flatMap to filter and map while preserving correct index alignment
+    // This avoids the bug where filter changes indices but map still uses original indices
+    const result = parentResults.flatMap((parentResult, i) => {
+      const landmarks = faceLandmarksByFace[i];
+      if (!landmarks) {
+        return []; // Skip this result (equivalent to filter returning false)
+      }
+      return [extendWithFaceLandmarks<TSource>(parentResult, landmarks)];
+    });
+
     return result;
   }
 
@@ -60,7 +79,9 @@ export class DetectAllFaceLandmarksTask<TSource extends WithFaceDetection<{}>> e
   }
 }
 
-export class DetectSingleFaceLandmarksTask<TSource extends WithFaceDetection<{}>> extends DetectFaceLandmarksTaskBase<WithFaceLandmarks<TSource> | undefined, TSource | undefined> {
+export class DetectSingleFaceLandmarksTask<
+  TSource extends WithFaceDetection<{}>,
+> extends DetectFaceLandmarksTaskBase<WithFaceLandmarks<TSource> | undefined, TSource | undefined> {
   public override async run(): Promise<WithFaceLandmarks<TSource> | undefined> {
     const parentResult = await this.parentTask;
     if (!parentResult) {
@@ -70,7 +91,12 @@ export class DetectSingleFaceLandmarksTask<TSource extends WithFaceDetection<{}>
     const faces: Array<HTMLCanvasElement | tf.Tensor3D> = this.input instanceof tf.Tensor
       ? await extractFaceTensors(this.input, [detection])
       : await extractFaces(this.input, [detection]);
-    const landmarks = await this.landmarkNet.detectLandmarks(faces[0]) as FaceLandmarks68;
+    const face = faces[0];
+    if (!face) {
+      faces.forEach((f) => f instanceof tf.Tensor && f.dispose());
+      return undefined;
+    }
+    const landmarks = await this.landmarkNet.detectLandmarks(face) as FaceLandmarks68;
     faces.forEach((f) => f instanceof tf.Tensor && f.dispose());
     return extendWithFaceLandmarks<TSource>(parentResult, landmarks);
   }

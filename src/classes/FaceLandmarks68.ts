@@ -1,6 +1,6 @@
 import { getCenterPoint } from '../utils/index';
 import { FaceLandmarks } from './FaceLandmarks';
-import { Point } from './Point';
+import type { Point } from './Point';
 
 export class FaceLandmarks68 extends FaceLandmarks {
   public getJawOutline(): Point[] {

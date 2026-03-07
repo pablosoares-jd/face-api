@@ -1,6 +1,7 @@
 import { isTensor } from '../utils/index';
-import { ParamMapping } from './types';
+import type { ParamMapping } from './types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractWeightEntryFactory(weightMap: any, paramMappings: ParamMapping[]) {
   return (originalPath: string, paramRank: number, mappedPath?: string) => {
     const tensor = weightMap[originalPath];

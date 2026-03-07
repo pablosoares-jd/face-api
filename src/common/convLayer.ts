@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { ConvParams } from './types';
+import type { ConvParams } from './types';
 
 export function convLayer(
   x: tf.Tensor4D,

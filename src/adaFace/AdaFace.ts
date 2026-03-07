@@ -1,12 +1,14 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { FaceRecognitionNet } from '../faceRecognitionNet/FaceRecognitionNet';
-import { AdaFaceOptions, IAdaFaceOptions } from './AdaFaceOptions';
+import type { IAdaFaceOptions } from './AdaFaceOptions';
+import { AdaFaceOptions } from './AdaFaceOptions';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
-import { NetParams } from './types';
+import type { NetParams } from './types';
 
 /**
  * AdaFace - Adaptive Face Recognition for varying image quality.
@@ -217,10 +219,22 @@ export class AdaFace extends NeuralNetwork<NetParams> {
     const netInput = await toNetInput(input);
     const descriptorTensors = tf.tidy(() => tf.unstack(this.forwardInput(netInput)));
 
+    // Defensive check: if no tensors were produced, return empty descriptor
+    if (!descriptorTensors || descriptorTensors.length === 0) {
+      console.warn('AdaFace: No descriptor tensors produced');
+      return new Float32Array(512);
+    }
+
     try {
       const adaFaceDescriptors = await Promise.all(
         descriptorTensors.map((t: tf.Tensor) => t.data()),
       ) as Float32Array[];
+
+      // Defensive check: if no descriptors computed, return empty
+      if (!adaFaceDescriptors || adaFaceDescriptors.length === 0) {
+        console.warn('AdaFace: No descriptors computed');
+        return new Float32Array(512);
+      }
 
       // Blend with FaceNet if enabled and both models are loaded
       if (opts.blendDescriptors && this._fallbackNet?.isLoaded) {
@@ -233,10 +247,26 @@ export class AdaFace extends NeuralNetwork<NetParams> {
           return this.blendDescriptors(adaDesc, faceNetDesc, opts.blendWeight);
         });
 
-        return netInput.isBatchInput ? blendedDescriptors : blendedDescriptors[0]!;
+        if (!netInput.isBatchInput) {
+          const first = blendedDescriptors[0];
+          if (!first) {
+            console.warn('AdaFace: First blended descriptor is null/undefined');
+            return new Float32Array(512);
+          }
+          return first;
+        }
+        return blendedDescriptors;
       }
 
-      return netInput.isBatchInput ? adaFaceDescriptors : adaFaceDescriptors[0]!;
+      if (!netInput.isBatchInput) {
+        const first = adaFaceDescriptors[0];
+        if (!first) {
+          console.warn('AdaFace: First descriptor is null/undefined');
+          return new Float32Array(512);
+        }
+        return first;
+      }
+      return adaFaceDescriptors;
     } finally {
       descriptorTensors.forEach((t: tf.Tensor) => t.dispose());
     }

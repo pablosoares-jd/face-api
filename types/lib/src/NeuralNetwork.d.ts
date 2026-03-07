@@ -1,5 +1,29 @@
 import * as tf from '@tensorflow/tfjs';
 import { ParamMapping } from './common/index';
+/**
+ * Serialized model weights with metadata.
+ */
+export interface SerializedWeights {
+    /** Format version for forward compatibility */
+    version: number;
+    /** Model name */
+    name: string;
+    /** Total number of parameters */
+    numParams: number;
+    /** Parameter shapes for validation */
+    shapes: Record<string, number[]>;
+    /** Serialized weights as base64 or array */
+    weights: string | number[];
+    /** Optional training metadata */
+    metadata?: {
+        trainedAt?: string;
+        epochs?: number;
+        finalLoss?: number;
+        framework?: string;
+    };
+    /** Checksum for integrity validation */
+    checksum?: string;
+}
 export declare abstract class NeuralNetwork<TNetParams> {
     constructor(name: string);
     protected _params: TNetParams | undefined;
@@ -23,9 +47,25 @@ export declare abstract class NeuralNetwork<TNetParams> {
         tensor: tf.Tensor<tf.Rank>;
     }[];
     variable(): void;
-    freeze(): void;
+    freeze(): Promise<void>;
     dispose(throwOnRedispose?: boolean): void;
-    serializeParams(): Float32Array;
+    /**
+     * Serialize parameters to Float32Array (legacy format).
+     * @deprecated Use serializeWithMetadata() for versioned output
+     */
+    serializeParams(): Promise<Float32Array>;
+    /**
+     * Serialize parameters with version and metadata.
+     */
+    serializeWithMetadata(metadata?: SerializedWeights['metadata']): Promise<SerializedWeights>;
+    /**
+     * Load parameters from versioned format.
+     */
+    loadFromSerialized(data: SerializedWeights): void;
+    /**
+     * Convert base64 string to Float32Array.
+     */
+    private _base64ToFloat32Array;
     load(weightsOrUrl: Float32Array | string | undefined): Promise<void>;
     loadFromUri(uri: string | undefined): Promise<void>;
     loadFromDisk(filePath: string | undefined): Promise<void>;

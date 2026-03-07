@@ -1,6 +1,6 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { FCParams } from '../common/index';
+import type { FCParams } from '../common/index';
 
 // eslint-disable-next-line no-shadow
 export enum Gender {

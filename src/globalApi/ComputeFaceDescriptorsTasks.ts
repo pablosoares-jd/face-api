@@ -1,8 +1,9 @@
 /* eslint-disable max-classes-per-file */
-import { TNetInput } from '../dom/index';
-import { extendWithFaceDescriptor, WithFaceDescriptor } from '../factories/WithFaceDescriptor';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { TNetInput } from '../dom/index';
+import type { WithFaceDescriptor } from '../factories/WithFaceDescriptor';
+import { extendWithFaceDescriptor } from '../factories/WithFaceDescriptor';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
 import { ComposableTask } from './ComposableTask';
 import { extractAllFacesAndComputeResults, extractSingleFaceAndComputeResult } from './extractFacesAndComputeResults';
 import { nets } from './nets';
@@ -20,7 +21,9 @@ export class ComputeFaceDescriptorsTaskBase<TReturn, TParentReturn> extends Comp
   }
 }
 
-export class ComputeAllFaceDescriptorsTask<TSource extends WithFaceLandmarks<WithFaceDetection<{}>>> extends ComputeFaceDescriptorsTaskBase<WithFaceDescriptor<TSource>[], TSource[]> {
+export class ComputeAllFaceDescriptorsTask<
+  TSource extends WithFaceLandmarks<WithFaceDetection<{}>>,
+> extends ComputeFaceDescriptorsTaskBase<WithFaceDescriptor<TSource>[], TSource[]> {
   public override async run(): Promise<WithFaceDescriptor<TSource>[]> {
     const parentResults = await this.parentTask;
     const descriptors = await extractAllFacesAndComputeResults<TSource, Float32Array[]>(
@@ -30,7 +33,13 @@ export class ComputeAllFaceDescriptorsTask<TSource extends WithFaceLandmarks<Wit
       null,
       (parentResult) => parentResult.landmarks.align(null, { useDlibAlignment: true }),
     );
-    return descriptors.map((descriptor, i) => extendWithFaceDescriptor<TSource>(parentResults[i], descriptor));
+    return descriptors.map((descriptor, i) => {
+      const parentResult = parentResults[i];
+      if (!parentResult) {
+        throw new Error(`ComputeAllFaceDescriptorsTask - no parent result at index ${i}`);
+      }
+      return extendWithFaceDescriptor<TSource>(parentResult, descriptor);
+    });
   }
 
   withFaceExpressions() {
@@ -42,7 +51,9 @@ export class ComputeAllFaceDescriptorsTask<TSource extends WithFaceLandmarks<Wit
   }
 }
 
-export class ComputeSingleFaceDescriptorTask<TSource extends WithFaceLandmarks<WithFaceDetection<{}>>> extends ComputeFaceDescriptorsTaskBase<WithFaceDescriptor<TSource> | undefined, TSource | undefined> {
+export class ComputeSingleFaceDescriptorTask<
+  TSource extends WithFaceLandmarks<WithFaceDetection<{}>>,
+> extends ComputeFaceDescriptorsTaskBase<WithFaceDescriptor<TSource> | undefined, TSource | undefined> {
   public override async run(): Promise<WithFaceDescriptor<TSource> | undefined> {
     const parentResult = await this.parentTask;
     if (!parentResult) return undefined;

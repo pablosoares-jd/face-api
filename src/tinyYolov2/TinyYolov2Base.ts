@@ -1,25 +1,27 @@
 import * as tf from '@tensorflow/tfjs';
 
 import { BoundingBox } from '../classes/BoundingBox';
-import { Dimensions } from '../classes/Dimensions';
+import type { Dimensions } from '../classes/Dimensions';
 import { ObjectDetection } from '../classes/ObjectDetection';
 import { convLayer } from '../common/index';
-import { ConvParams, SeparableConvParams } from '../common/types';
+import type { ConvParams, SeparableConvParams } from '../common/types';
 import { toNetInput } from '../dom/index';
-import { NetInput } from '../dom/NetInput';
-import { TNetInput } from '../dom/types';
+import type { NetInput } from '../dom/NetInput';
+import type { TNetInput } from '../dom/types';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { sigmoid } from '../ops/index';
 import { nonMaxSuppression } from '../ops/nonMaxSuppression';
 import { normalize } from '../ops/normalize';
-import { TinyYolov2Config, validateConfig } from './config';
+import type { TinyYolov2Config } from './config';
+import { validateConfig } from './config';
 import { convWithBatchNorm } from './convWithBatchNorm';
 import { depthwiseSeparableConv } from './depthwiseSeparableConv';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
 import { leaky } from './leaky';
-import { ITinyYolov2Options, TinyYolov2Options } from './TinyYolov2Options';
-import { DefaultTinyYolov2NetParams, MobilenetParams, TinyYolov2ExtractBoxesResult, TinyYolov2NetParams } from './types';
+import type { ITinyYolov2Options } from './TinyYolov2Options';
+import { TinyYolov2Options } from './TinyYolov2Options';
+import type { DefaultTinyYolov2NetParams, MobilenetParams, TinyYolov2ExtractBoxesResult, TinyYolov2NetParams } from './types';
 
 export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
   public static DEFAULT_FILTER_SIZES = [3, 16, 32, 64, 128, 256, 512, 1024, 1024];
@@ -109,7 +111,13 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     const { inputSize, scoreThreshold } = new TinyYolov2Options(forwardParams);
     const netInput = await toNetInput(input);
     const out = await this.forwardInput(netInput, inputSize);
-    const out0 = tf.tidy(() => tf.unstack(out)[0].expandDims()) as tf.Tensor4D;
+    const out0 = tf.tidy(() => {
+      const unstacked = tf.unstack(out)[0];
+      if (!unstacked) {
+        throw new Error('TinyYolov2Base.detect - failed to unstack output tensor');
+      }
+      return unstacked.expandDims();
+    }) as tf.Tensor4D;
     const inputDimensions = {
       width: netInput.getInputWidth(0),
       height: netInput.getInputHeight(0),
@@ -131,13 +139,16 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       true,
     );
 
-    const detections = indices.map((idx) => new ObjectDetection(
-      scores[idx],
-      classScores[idx],
-      classNames[idx],
-      boxes[idx],
-      inputDimensions,
-    ));
+    const detections = indices.map((idx) => {
+      const score = scores[idx];
+      const classScore = classScores[idx];
+      const className = classNames[idx];
+      const box = boxes[idx];
+      if (score === undefined || classScore === undefined || className === undefined || box === undefined) {
+        throw new Error(`TinyYolov2Base.detect - invalid result at index ${idx}`);
+      }
+      return new ObjectDetection(score, classScore, className, box, inputDimensions);
+    });
     return detections;
   }
 
@@ -195,29 +206,53 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
 
       // Process all cells without async/await inside loops
       for (let row = 0; row < numCells; row++) {
+        const scoreRow = scoresData[row];
+        const boxRow = boxesData[row];
+        if (!scoreRow || !boxRow) continue;
+
         for (let col = 0; col < numCells; col++) {
+          const scoreCol = scoreRow[col];
+          const boxCol = boxRow[col];
+          if (!scoreCol || !boxCol) continue;
+
           for (let anchor = 0; anchor < numBoxes; anchor++) {
-            const score = sigmoid(scoresData[row][col][anchor][0]);
+            const scoreAnchor = scoreCol[anchor];
+            const boxData = boxCol[anchor];
+            const anchorConfig = this.config.anchors[anchor];
+            if (!scoreAnchor || !boxData || !anchorConfig) continue;
+
+            const scoreVal = scoreAnchor[0];
+            if (scoreVal === undefined) continue;
+            const score = sigmoid(scoreVal);
 
             if (!scoreThreshold || score > scoreThreshold) {
-              const boxData = boxesData[row][col][anchor];
-              const ctX = ((col + sigmoid(boxData[0])) / numCells) * correctionFactorX;
-              const ctY = ((row + sigmoid(boxData[1])) / numCells) * correctionFactorY;
-              const widthLocal = ((Math.exp(boxData[2]) * this.config.anchors[anchor].x) / numCells) * correctionFactorX;
-              const heightLocal = ((Math.exp(boxData[3]) * this.config.anchors[anchor].y) / numCells) * correctionFactorY;
+              const box0 = boxData[0] ?? 0;
+              const box1 = boxData[1] ?? 0;
+              const box2 = boxData[2] ?? 0;
+              const box3 = boxData[3] ?? 0;
+
+              const ctX = ((col + sigmoid(box0)) / numCells) * correctionFactorX;
+              const ctY = ((row + sigmoid(box1)) / numCells) * correctionFactorY;
+              const widthLocal = ((Math.exp(box2) * anchorConfig.x) / numCells) * correctionFactorX;
+              const heightLocal = ((Math.exp(box3) * anchorConfig.y) / numCells) * correctionFactorY;
               const x = ctX - (widthLocal / 2);
               const y = ctY - (heightLocal / 2);
 
               // Extract class scores synchronously from pre-fetched data
               let classScore = 1;
-              let label = 0;
+              let labelVal = 0;
 
               if (this.withClassScores && classScoresData) {
-                const classData = classScoresData[row][col][anchor];
-                for (let i = 0; i < this.config.classes.length; i++) {
-                  if (classData[i] > classScore || i === 0) {
-                    classScore = classData[i];
-                    label = i;
+                const classRow = classScoresData[row];
+                const classCol = classRow?.[col];
+                const classData = classCol?.[anchor];
+                if (classData) {
+                  for (let i = 0; i < this.config.classes.length; i++) {
+                    const classVal = classData[i] ?? 0;
+                    if (classVal > classScore || i === 0) {
+                      classScore = classVal;
+                      labelVal = i;
+                    }
                   }
                 }
               }
@@ -226,7 +261,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
                 box: new BoundingBox(x, y, x + widthLocal, y + heightLocal),
                 score,
                 classScore: score * classScore,
-                label,
+                label: labelVal,
                 row,
                 col,
                 anchor,
@@ -245,17 +280,25 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     }
   }
 
-  private async extractPredictedClass(classesTensor: tf.Tensor4D, pos: { row: number, col: number, anchor: number }) {
+  // extractPredictedClass is available for subclass implementations
+  protected async extractPredictedClass(classesTensor: tf.Tensor4D, pos: { row: number, col: number, anchor: number }) {
     const { row, col, anchor } = pos;
     const classesData = await classesTensor.array() as number[][][][];
-    const classData = classesData[row][col][anchor];
+    const rowData = classesData[row];
+    const colData = rowData?.[col];
+    const classData = colData?.[anchor];
 
-    let maxScore = classData[0];
+    if (!classData) {
+      return { classScore: 0, label: 0 };
+    }
+
+    let maxScore = classData[0] ?? 0;
     let maxLabel = 0;
 
     for (let i = 1; i < this.config.classes.length; i++) {
-      if (classData[i] > maxScore) {
-        maxScore = classData[i];
+      const score = classData[i] ?? 0;
+      if (score > maxScore) {
+        maxScore = score;
         maxLabel = i;
       }
     }

@@ -1,4 +1,4 @@
-import { Point } from '../classes/Point';
+import type { Point } from '../classes/Point';
 
 export type TinyYolov2Config = {
   withSeparableConvs: boolean

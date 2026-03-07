@@ -8,7 +8,7 @@ export declare class FaceExpressionNet extends FaceProcessor<FaceFeatureExtracto
     constructor(faceFeatureExtractor?: FaceFeatureExtractor);
     forwardInput(input: NetInput | tf.Tensor4D): tf.Tensor2D;
     forward(input: TNetInput): Promise<tf.Tensor2D>;
-    predictExpressions(input: TNetInput): Promise<FaceExpressions | FaceExpressions[]>;
+    predictExpressions(input: TNetInput): Promise<FaceExpressions | FaceExpressions[] | undefined>;
     protected getDefaultModelName(): string;
     protected getClassifierChannelsIn(): number;
     protected getClassifierChannelsOut(): number;

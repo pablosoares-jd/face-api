@@ -124,7 +124,7 @@ export class TrainingDataset {
       name: metadata.name || 'Untitled',
       task: metadata.task || 'recognition',
       totalSamples: 0,
-      ...metadata
+      ...metadata,
     };
   }
 
@@ -221,7 +221,7 @@ export class TrainingDataset {
       byClass.get(key)!.push(sample);
     }
 
-    const minCount = Math.min(...[...byClass.values()].map(s => s.length));
+    const minCount = Math.min(...[...byClass.values()].map((s) => s.length));
 
     this._samples = [];
     for (const samples of byClass.values()) {
@@ -250,31 +250,57 @@ export class TrainingDataset {
       shuffleBuffer = 1000,
       prefetchBuffer = 2,
       imageSize = [224, 224],
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      normalize = true
+      normalize = true,
     } = options;
 
     const samples = this._samples;
-    // Note: task can be used in future for label encoding
-    // const task = this._metadata.task;
+    const task = this._metadata.task;
+    const imgHeight = imageSize[0] ?? 224;
+    const imgWidth = imageSize[1] ?? 224;
 
-    const generator = function* () {
+    const generator = function* (): Generator<{ xs: tf.Tensor; ys: tf.Tensor }> {
       for (const sample of samples) {
-        yield sample;
+        // Create placeholder tensor for image (actual implementation would load from sample.image)
+        let xs = tf.zeros([imgHeight, imgWidth, 3]);
+
+        // Apply normalization if requested (scale to 0-1 range)
+        if (normalize) {
+          xs = tf.div(xs, 255) as tf.Tensor;
+        }
+
+        // Create label tensor based on task type and available labels
+        let ys: tf.Tensor;
+        if (task === 'expression' && sample.labels.expression) {
+          // Expression as one-hot or index
+          const expressions = ['neutral', 'happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised'];
+          const idx = expressions.indexOf(sample.labels.expression);
+          ys = tf.scalar(idx >= 0 ? idx : 0);
+        } else if (task === 'age-gender') {
+          // Age and gender combined
+          const age = sample.labels.age ?? 0;
+          const gender = sample.labels.gender === 'male' ? 1 : 0;
+          ys = tf.tensor1d([age / 100, gender]); // Normalize age to 0-1
+        } else if (task === 'landmarks' && sample.labels.landmarks) {
+          // Flatten landmark points
+          const points = sample.labels.landmarks.flatMap((p) => [p.x, p.y]);
+          ys = tf.tensor1d(points);
+        } else if (task === 'detection' && sample.labels.boundingBox) {
+          // Bounding box [x, y, width, height]
+          const box = sample.labels.boundingBox;
+          ys = tf.tensor1d([box.x, box.y, box.width, box.height]);
+        } else {
+          // Recognition or fallback - use identity hash as placeholder
+          ys = tf.zeros([128]); // Embedding dimension
+        }
+
+        yield { xs, ys };
       }
     };
 
     return tf.data.generator(generator)
       .shuffle(shuffleBuffer)
-      .map((sample: TrainingSample) => {
-        // This would need actual image loading - placeholder for now
-        const xs = tf.zeros([imageSize[0], imageSize[1], 3]);
-        const ys = tf.zeros([1]); // Placeholder
-
-        return { xs, ys };
-      })
       .batch(batchSize)
-      .prefetch(prefetchBuffer);
+      .prefetch(prefetchBuffer) as tf.data.Dataset<{ xs: tf.Tensor; ys: tf.Tensor }>;
   }
 
   /**
@@ -283,10 +309,10 @@ export class TrainingDataset {
   public toJSON(): { metadata: DatasetMetadata; samples: TrainingSample[] } {
     return {
       metadata: this._metadata,
-      samples: this._samples.map(s => ({
+      samples: this._samples.map((s) => ({
         ...s,
-        image: typeof s.image === 'string' ? s.image : '[Tensor]'
-      }))
+        image: typeof s.image === 'string' ? s.image : '[Tensor]',
+      })),
     };
   }
 
@@ -318,18 +344,18 @@ export class DatasetLoader {
    */
   public async fromDirectory(
     path: string,
-    options: DirectoryOptions
+    options: DirectoryOptions,
   ): Promise<TrainingDataset> {
     const {
       task,
       extensions = ['jpg', 'jpeg', 'png', 'webp'],
-      maxPerClass
+      maxPerClass,
     } = options;
 
     const dataset = new TrainingDataset({
       name: path.split('/').pop() || 'Dataset',
       task,
-      source: path
+      source: path,
     });
 
     // In browser, this would need a file input
@@ -339,15 +365,11 @@ export class DatasetLoader {
       const pathModule = await import('path').catch(() => null);
 
       if (fs && pathModule) {
-        const classes = fs.readdirSync(path).filter((f: string) =>
-          fs.statSync(pathModule.join(path, f)).isDirectory()
-        );
+        const classes = fs.readdirSync(path).filter((f: string) => fs.statSync(pathModule.join(path, f)).isDirectory());
 
         for (const className of classes) {
           const classPath = pathModule.join(path, className);
-          let files = fs.readdirSync(classPath).filter((f: string) =>
-            extensions.some(ext => f.toLowerCase().endsWith(`.${ext}`))
-          );
+          let files = fs.readdirSync(classPath).filter((f: string) => extensions.some((ext) => f.toLowerCase().endsWith(`.${ext}`)));
 
           if (maxPerClass) {
             files = files.slice(0, maxPerClass);
@@ -356,7 +378,7 @@ export class DatasetLoader {
           for (const file of files) {
             dataset.addSample({
               image: pathModule.join(classPath, file),
-              labels: { identity: className }
+              labels: { identity: className },
             });
           }
         }
@@ -371,20 +393,20 @@ export class DatasetLoader {
    */
   public async fromCSV(
     path: string,
-    options: CSVOptions
+    options: CSVOptions,
   ): Promise<TrainingDataset> {
     const {
       imageColumn,
       labelColumns,
       basePath = '',
       delimiter = ',',
-      hasHeader = true
+      hasHeader = true,
     } = options;
 
     const dataset = new TrainingDataset({
       name: path.split('/').pop()?.replace('.csv', '') || 'Dataset',
       task: 'recognition',
-      source: path
+      source: path,
     });
 
     // Read and parse CSV
@@ -404,15 +426,16 @@ export class DatasetLoader {
       throw new Error('Cannot read file in this environment');
     }
 
-    const lines = content.split('\n').filter(l => l.trim());
-    const headers = hasHeader
-      ? lines[0].split(delimiter).map(h => h.trim())
+    const lines = content.split('\n').filter((l) => l.trim());
+    const firstLine = lines[0];
+    const headers = hasHeader && firstLine
+      ? firstLine.split(delimiter).map((h) => h.trim())
       : [];
     const dataLines = hasHeader ? lines.slice(1) : lines;
 
     const imageIdx = hasHeader ? headers.indexOf(imageColumn) : 0;
     const labelIndices = hasHeader
-      ? labelColumns.map(c => headers.indexOf(c))
+      ? labelColumns.map((c) => headers.indexOf(c))
       : labelColumns.map((_, i) => i + 1);
 
     // Validate column indices
@@ -426,20 +449,26 @@ export class DatasetLoader {
     }
 
     for (const line of dataLines) {
-      const values = line.split(delimiter).map(v => v.trim());
+      const values = line.split(delimiter).map((v) => v.trim());
 
       // Skip empty or malformed lines
       if (values.length <= imageIdx) continue;
 
+      const imageValue = values[imageIdx];
+      if (!imageValue) continue;
+
       const imagePath = basePath
-        ? `${basePath}/${values[imageIdx]}`
-        : values[imageIdx];
+        ? `${basePath}/${imageValue}`
+        : imageValue;
 
       const labels: TrainingSample['labels'] = {};
 
       for (let i = 0; i < labelColumns.length; i++) {
         const column = labelColumns[i];
-        const value = values[labelIndices[i]];
+        const labelIdx = labelIndices[i];
+        if (column === undefined || labelIdx === undefined) continue;
+        const value = values[labelIdx];
+        if (value === undefined) continue;
 
         if (column === 'identity' || column === 'expression') {
           labels[column] = value;
@@ -489,18 +518,20 @@ export class DatasetLoader {
   public async fromURLs(
     urls: string[],
     labels: TrainingSample['labels'][],
-    options: { task?: TrainingTask } = {}
+    options: { task?: TrainingTask } = {},
   ): Promise<TrainingDataset> {
     const dataset = new TrainingDataset({
       name: 'URL Dataset',
       task: options.task || 'recognition',
-      source: 'urls'
+      source: 'urls',
     });
 
     for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      if (!url) continue;
       dataset.addSample({
-        image: urls[i],
-        labels: labels[i] || {}
+        image: url,
+        labels: labels[i] || {},
       });
     }
 

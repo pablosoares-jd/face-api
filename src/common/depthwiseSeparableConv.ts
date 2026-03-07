@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { SeparableConvParams } from './types';
+import type { SeparableConvParams } from './types';
 
 export function depthwiseSeparableConv(
   x: tf.Tensor4D,

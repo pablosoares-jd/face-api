@@ -1,4 +1,4 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
 // eslint-disable-next-line no-unused-vars
 export type ExtractWeightsFunction = (numWeights: number) => Float32Array

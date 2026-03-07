@@ -8,8 +8,15 @@ export async function loadWeightMap(
   defaultModelName: string,
 ): Promise<tf.NamedTensorMap> {
   const { manifestUri, modelBaseUri } = getModelUris(uri, defaultModelName);
-  // @ts-ignore
-  const manifest = await fetchJson<tf.io.WeightsManifestConfig>(manifestUri);
-  // if (manifest['weightsManifest']) manifest = manifest['weightsManifest'];
-  return tf['io'].loadWeights(manifest, modelBaseUri);
+  // Fetch manifest - it could be a WeightsManifestConfig or wrapped in an object
+  const manifestResponse = await fetchJson<tf.io.WeightsManifestConfig | { weightsManifest: tf.io.WeightsManifestConfig }>(manifestUri);
+
+  // Handle both direct manifest format and wrapped format
+  const manifest: tf.io.WeightsManifestConfig = 'weightsManifest' in manifestResponse
+    ? manifestResponse.weightsManifest
+    : manifestResponse;
+
+  // Access loadWeights through io namespace (internal TensorFlow.js API)
+  const tfIO = tf.io as typeof tf.io & { loadWeights: (manifest: tf.io.WeightsManifestConfig, baseUri: string) => Promise<tf.NamedTensorMap> };
+  return tfIO.loadWeights(manifest, modelBaseUri);
 }

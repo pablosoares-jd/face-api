@@ -30,9 +30,8 @@ export {
   isWasmSupported,
   getAvailableBackends,
   getCurrentBackend,
-  BackendType,
-  BackendInitResult,
 } from './webgpu/index';
+export type { BackendType, BackendInitResult } from './webgpu/index';
 
 // Core classes
 export {
@@ -48,7 +47,6 @@ export {
 // DOM utilities
 export {
   NetInput,
-  TNetInput,
   toNetInput,
   createCanvas,
   createCanvasFromMedia,
@@ -64,17 +62,22 @@ export {
   awaitMediaLoaded,
   resolveInput,
 } from './dom/index';
+export type { TNetInput } from './dom/index';
 
 // Drawing utilities
 export * as draw from './draw/index';
 
 // Detectors
 export { SsdMobilenetv1 } from './ssdMobilenetv1/SsdMobilenetv1';
-export { SsdMobilenetv1Options, ISsdMobilenetv1Options } from './ssdMobilenetv1/SsdMobilenetv1Options';
+export { SsdMobilenetv1Options } from './ssdMobilenetv1/SsdMobilenetv1Options';
+export type { ISsdMobilenetv1Options } from './ssdMobilenetv1/SsdMobilenetv1Options';
 export { TinyFaceDetector } from './tinyFaceDetector/TinyFaceDetector';
-export { TinyFaceDetectorOptions, ITinyFaceDetectorOptions } from './tinyFaceDetector/TinyFaceDetectorOptions';
-export { BlazeFace, BlazeFaceDetection, BlazeFaceKeypoints } from './blazeFace/BlazeFace';
-export { BlazeFaceOptions, IBlazeFaceOptions } from './blazeFace/BlazeFaceOptions';
+export { TinyFaceDetectorOptions } from './tinyFaceDetector/TinyFaceDetectorOptions';
+export type { ITinyFaceDetectorOptions } from './tinyFaceDetector/TinyFaceDetectorOptions';
+export { BlazeFace, BlazeFaceDetection } from './blazeFace/BlazeFace';
+export type { BlazeFaceKeypoints } from './blazeFace/BlazeFace';
+export { BlazeFaceOptions } from './blazeFace/BlazeFaceOptions';
+export type { IBlazeFaceOptions } from './blazeFace/BlazeFaceOptions';
 
 // Global detection API
 export {

@@ -1,7 +1,7 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { ParamMapping } from '../common/types';
-import {
+import type { ParamMapping } from '../common/types';
+import type {
   NetParams,
   FaceMeshConvBlockParams,
   ResidualBlockParams,

@@ -1,5 +1,5 @@
-import { ParamMapping } from '../common/types';
-import { NetParams } from './types';
+import type { ParamMapping } from '../common/types';
+import type { NetParams } from './types';
 
 /**
  * Extract FaceMesh parameters from weight array.
@@ -7,7 +7,7 @@ import { NetParams } from './types';
  */
 export function extractParams(weights: Float32Array): { params: NetParams; paramMappings: ParamMapping[] } {
   throw new Error(
-    'FaceMesh extractParams: Binary weight loading not supported. ' +
-    'Use loadFromUri with a weight manifest instead.',
+    `FaceMesh extractParams: Binary weight loading not supported (received ${weights.length} weights). `
+    + 'Use loadFromUri with a weight manifest instead.',
   );
 }

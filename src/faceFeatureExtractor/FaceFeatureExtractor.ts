@@ -1,12 +1,13 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { normalize } from '../ops/index';
 import { denseBlock4 } from './denseBlock';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
-import { FaceFeatureExtractorParams, IFaceFeatureExtractor } from './types';
+import type { FaceFeatureExtractorParams, IFaceFeatureExtractor } from './types';
 
 export class FaceFeatureExtractor extends NeuralNetwork<FaceFeatureExtractorParams> implements IFaceFeatureExtractor<FaceFeatureExtractorParams> {
   constructor() {

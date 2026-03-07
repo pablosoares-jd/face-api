@@ -1,18 +1,26 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { OutputLayerParams } from './types';
+import type { OutputLayerParams } from './types';
 
 function getCenterCoordinatesAndSizesLayer(x: tf.Tensor2D) {
   const vec = tf.unstack(tf.transpose(x, [1, 0]));
+  const vec0 = vec[0];
+  const vec1 = vec[1];
+  const vec2 = vec[2];
+  const vec3 = vec[3];
+
+  if (!vec0 || !vec1 || !vec2 || !vec3) {
+    throw new Error('getCenterCoordinatesAndSizesLayer - expected 4 tensors from unstack');
+  }
 
   const sizes = [
-    tf.sub(vec[2], vec[0]),
-    tf.sub(vec[3], vec[1]),
-  ];
+    tf.sub(vec2, vec0),
+    tf.sub(vec3, vec1),
+  ] as const;
   const centers = [
-    tf.add(vec[0], tf.div(sizes[0], 2)),
-    tf.add(vec[1], tf.div(sizes[1], 2)),
-  ];
+    tf.add(vec0, tf.div(sizes[0], 2)),
+    tf.add(vec1, tf.div(sizes[1], 2)),
+  ] as const;
   return { sizes, centers };
 }
 
@@ -20,10 +28,19 @@ function decodeBoxesLayer(x0: tf.Tensor2D, x1: tf.Tensor2D) {
   const { sizes, centers } = getCenterCoordinatesAndSizesLayer(x0);
 
   const vec = tf.unstack(tf.transpose(x1, [1, 0]));
-  const div0_out = tf.div(tf.mul(tf.exp(tf.div(vec[2], 5)), sizes[0]), 2);
-  const add0_out = tf.add(tf.mul(tf.div(vec[0], 10), sizes[0]), centers[0]);
-  const div1_out = tf.div(tf.mul(tf.exp(tf.div(vec[3], 5)), sizes[1]), 2);
-  const add1_out = tf.add(tf.mul(tf.div(vec[1], 10), sizes[1]), centers[1]);
+  const vec0 = vec[0];
+  const vec1 = vec[1];
+  const vec2 = vec[2];
+  const vec3 = vec[3];
+
+  if (!vec0 || !vec1 || !vec2 || !vec3) {
+    throw new Error('decodeBoxesLayer - expected 4 tensors from unstack');
+  }
+
+  const div0_out = tf.div(tf.mul(tf.exp(tf.div(vec2, 5)), sizes[0]), 2);
+  const add0_out = tf.add(tf.mul(tf.div(vec0, 10), sizes[0]), centers[0]);
+  const div1_out = tf.div(tf.mul(tf.exp(tf.div(vec3, 5)), sizes[1]), 2);
+  const add1_out = tf.add(tf.mul(tf.div(vec1, 10), sizes[1]), centers[1]);
 
   return tf.transpose(
     tf.stack([

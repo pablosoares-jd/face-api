@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { ExtractWeightsFunction, FCParams, ParamMapping } from './types';
+import type { ExtractWeightsFunction, FCParams, ParamMapping } from './types';
 
 export function extractFCParamsFactory(
   extractWeights: ExtractWeightsFunction,

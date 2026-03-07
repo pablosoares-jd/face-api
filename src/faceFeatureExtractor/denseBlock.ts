@@ -1,8 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { ConvParams, SeparableConvParams } from '../common/index';
+import type { ConvParams, SeparableConvParams } from '../common/index';
 import { depthwiseSeparableConv } from '../common/depthwiseSeparableConv';
-import { DenseBlock3Params, DenseBlock4Params } from './types';
+import type { DenseBlock3Params, DenseBlock4Params } from './types';
 
 export function denseBlock3(
   x: tf.Tensor4D,

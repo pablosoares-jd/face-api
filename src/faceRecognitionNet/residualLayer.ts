@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 
 import { conv, convDown, convNoRelu } from './convLayer';
-import { ResidualLayerParams } from './types';
+import type { ResidualLayerParams } from './types';
 
 export function residual(x: tf.Tensor4D, params: ResidualLayerParams): tf.Tensor4D {
   return tf.tidy(() => {

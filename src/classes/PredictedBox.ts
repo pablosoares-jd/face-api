@@ -1,7 +1,7 @@
 import { isValidProbablitiy } from '../utils/index';
-import { IBoundingBox } from './BoundingBox';
+import type { IBoundingBox } from './BoundingBox';
 import { LabeledBox } from './LabeledBox';
-import { IRect } from './Rect';
+import type { IRect } from './Rect';
 
 export class PredictedBox extends LabeledBox {
   public static assertIsValidPredictedBox(box: any, callee: string) {

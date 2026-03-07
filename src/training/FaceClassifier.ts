@@ -26,7 +26,7 @@
  * ```
  */
 
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 import { euclideanDistance } from '../euclideanDistance';
 
 /**
@@ -115,7 +115,7 @@ export class FaceClassifier {
 
     if (desc.length !== this._descriptorSize) {
       throw new Error(
-        `Invalid descriptor size: expected ${this._descriptorSize}, got ${desc.length}`
+        `Invalid descriptor size: expected ${this._descriptorSize}, got ${desc.length}`,
       );
     }
 
@@ -142,7 +142,7 @@ export class FaceClassifier {
    */
   public removeFaces(label: string): number {
     const initialCount = this._faces.length;
-    this._faces = this._faces.filter(f => f.label !== label);
+    this._faces = this._faces.filter((f) => f.label !== label);
     return initialCount - this._faces.length;
   }
 
@@ -163,9 +163,11 @@ export class FaceClassifier {
     let normB = 0;
 
     for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+      const aVal = a[i] ?? 0;
+      const bVal = b[i] ?? 0;
+      dotProduct += aVal * bVal;
+      normA += aVal * aVal;
+      normB += bVal * bVal;
     }
 
     const denominator = Math.sqrt(normA) * Math.sqrt(normB);
@@ -184,7 +186,7 @@ export class FaceClassifier {
    */
   public classify(
     descriptor: Float32Array | number[],
-    options: ClassifyOptions = {}
+    options: ClassifyOptions = {},
   ): ClassificationResult {
     const { threshold = 0.6, k = 1, metric = 'euclidean' } = options;
 
@@ -193,7 +195,7 @@ export class FaceClassifier {
         label: 'unknown',
         distance: Infinity,
         confidence: 0,
-        matches: []
+        matches: [],
       };
     }
 
@@ -206,9 +208,9 @@ export class FaceClassifier {
       ? (a: number[], b: number[]) => this._cosineDistance(a, b)
       : (a: number[], b: number[]) => euclideanDistance(a, b);
 
-    const distances = this._faces.map(face => ({
+    const distances = this._faces.map((face) => ({
       label: face.label,
-      distance: distanceFunc(queryDesc, Array.from(face.descriptor))
+      distance: distanceFunc(queryDesc, Array.from(face.descriptor)),
     }));
 
     // Sort by distance
@@ -232,7 +234,8 @@ export class FaceClassifier {
       }
     }
 
-    const bestDistance = distances[0].distance;
+    const firstDistance = distances[0];
+    const bestDistance = firstDistance?.distance ?? Infinity;
 
     // Convert distance to confidence (sigmoid-like curve)
     const confidence = bestDistance < threshold
@@ -248,11 +251,11 @@ export class FaceClassifier {
       label: bestLabel,
       distance: bestDistance,
       confidence,
-      matches: distances.slice(0, 10).map(m => ({
+      matches: distances.slice(0, 10).map((m) => ({
         label: m.label,
         distance: m.distance,
-        confidence: Math.max(0, 1 - (m.distance / threshold))
-      }))
+        confidence: Math.max(0, 1 - (m.distance / threshold)),
+      })),
     };
   }
 
@@ -265,17 +268,17 @@ export class FaceClassifier {
    */
   public async classifyBatch(
     descriptors: tf.Tensor2D,
-    options: ClassifyOptions = {}
+    options: ClassifyOptions = {},
   ): Promise<ClassificationResult[]> {
     const descriptorArray = await descriptors.array() as number[][];
-    return descriptorArray.map(desc => this.classify(desc, options));
+    return descriptorArray.map((desc) => this.classify(desc, options));
   }
 
   /**
    * Get all unique labels in the classifier.
    */
   public getLabels(): string[] {
-    return [...new Set(this._faces.map(f => f.label))];
+    return [...new Set(this._faces.map((f) => f.label))];
   }
 
   /**
@@ -324,11 +327,11 @@ export class FaceClassifier {
     return {
       version: 1,
       descriptorSize: this._descriptorSize,
-      faces: this._faces.map(f => ({
+      faces: this._faces.map((f) => ({
         label: f.label,
-        descriptor: Array.from(f.descriptor)
+        descriptor: Array.from(f.descriptor),
       })),
-      metadata: this._metadata
+      metadata: this._metadata,
     };
   }
 
@@ -341,9 +344,9 @@ export class FaceClassifier {
     }
 
     this._descriptorSize = data.descriptorSize;
-    this._faces = data.faces.map(f => ({
+    this._faces = data.faces.map((f) => ({
       label: f.label,
-      descriptor: new Float32Array(f.descriptor)
+      descriptor: new Float32Array(f.descriptor),
     }));
     this._metadata = data.metadata || {};
   }
@@ -367,27 +370,32 @@ export class FaceClassifier {
    * Useful for creating representative embeddings.
    */
   public computeCentroid(label: string): Float32Array | null {
-    const faces = this._faces.filter(f => f.label === label);
+    const faces = this._faces.filter((f) => f.label === label);
     if (faces.length === 0) return null;
 
     const centroid = new Float32Array(this._descriptorSize);
     for (const face of faces) {
       for (let i = 0; i < this._descriptorSize; i++) {
-        centroid[i] += face.descriptor[i];
+        const descVal = face.descriptor[i] ?? 0;
+        const centVal = centroid[i] ?? 0;
+        centroid[i] = centVal + descVal;
       }
     }
     for (let i = 0; i < this._descriptorSize; i++) {
-      centroid[i] /= faces.length;
+      const val = centroid[i] ?? 0;
+      centroid[i] = val / faces.length;
     }
 
     // Normalize to unit length
     let norm = 0;
     for (let i = 0; i < this._descriptorSize; i++) {
-      norm += centroid[i] * centroid[i];
+      const val = centroid[i] ?? 0;
+      norm += val * val;
     }
     norm = Math.sqrt(norm);
     for (let i = 0; i < this._descriptorSize; i++) {
-      centroid[i] /= norm;
+      const val = centroid[i] ?? 0;
+      centroid[i] = val / norm;
     }
 
     return centroid;

@@ -1,8 +1,9 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { disposeUnusedWeightTensors, extractWeightEntryFactory, ParamMapping } from '../common/index';
+import type { ParamMapping } from '../common/index';
+import { disposeUnusedWeightTensors, extractWeightEntryFactory } from '../common/index';
 import { isTensor2D } from '../utils/index';
-import { ConvLayerParams, NetParams, ResidualLayerParams, ScaleLayerParams } from './types';
+import type { ConvLayerParams, NetParams, ResidualLayerParams, ScaleLayerParams } from './types';
 
 function extractorsFactory(weightMap: any, paramMappings: ParamMapping[]) {
   const extractWeightEntry = extractWeightEntryFactory(weightMap, paramMappings);

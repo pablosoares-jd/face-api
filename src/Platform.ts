@@ -5,7 +5,7 @@ export class PlatformBrowser {
     this.textEncoder = new TextEncoder();
   }
 
-  fetch(path: string, init?: any): Promise<Response> {
+  fetch(path: string, init?: RequestInit): Promise<Response> {
     return fetch(path, init);
   }
 

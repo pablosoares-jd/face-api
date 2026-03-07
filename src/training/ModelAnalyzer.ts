@@ -8,7 +8,7 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
-import { NeuralNetwork } from '../NeuralNetwork';
+import type { NeuralNetwork } from '../NeuralNetwork';
 
 /**
  * Statistics for a single parameter tensor.
@@ -90,7 +90,7 @@ export class ModelAnalyzer {
 
     const paramList = model.getParamList();
     const trainableParams = model.getTrainableParams();
-    const trainablePaths = new Set(trainableParams.map(p => p.path));
+    const trainablePaths = new Set(trainableParams.map((p) => p.path));
 
     const layers: ParamStats[] = [];
     let totalParams = 0;
@@ -104,7 +104,7 @@ export class ModelAnalyzer {
     }
 
     const trainableCount = layers
-      .filter(l => l.isTrainable)
+      .filter((l) => l.isTrainable)
       .reduce((sum, l) => sum + l.numParams, 0);
 
     const summary = this.generateSummary(model._name, layers, totalParams);
@@ -117,7 +117,7 @@ export class ModelAnalyzer {
       layers,
       memoryBytes,
       memoryMB: memoryBytes / (1024 * 1024),
-      summary
+      summary,
     };
   }
 
@@ -127,7 +127,7 @@ export class ModelAnalyzer {
   private static async analyzeParam(
     path: string,
     tensor: tf.Tensor,
-    isTrainable: boolean
+    isTrainable: boolean,
   ): Promise<ParamStats> {
     const data = await tensor.data();
     const numParams = data.length;
@@ -140,7 +140,7 @@ export class ModelAnalyzer {
     const threshold = 1e-6;
 
     for (let i = 0; i < numParams; i++) {
-      const val = data[i];
+      const val = data[i] ?? 0;
       if (val < min) min = val;
       if (val > max) max = val;
       sum += val;
@@ -152,7 +152,8 @@ export class ModelAnalyzer {
     // Calculate std
     let sumSqDiff = 0;
     for (let i = 0; i < numParams; i++) {
-      sumSqDiff += (data[i] - mean) ** 2;
+      const val = data[i] ?? 0;
+      sumSqDiff += (val - mean) ** 2;
     }
     const std = Math.sqrt(sumSqDiff / numParams);
 
@@ -166,7 +167,7 @@ export class ModelAnalyzer {
       mean,
       std,
       sparsity: (nearZero / numParams) * 100,
-      isTrainable
+      isTrainable,
     };
   }
 
@@ -191,15 +192,15 @@ export class ModelAnalyzer {
   private static generateSummary(
     name: string,
     layers: ParamStats[],
-    totalParams: number
+    totalParams: number,
   ): string {
     const lines: string[] = [
       `Model: ${name}`,
       `${'='.repeat(60)}`,
       `Total Parameters: ${totalParams.toLocaleString()}`,
-      ``,
-      `Layer Analysis:`,
-      `-`.repeat(60),
+      '',
+      'Layer Analysis:',
+      '-'.repeat(60),
     ];
 
     // Group by layer type
@@ -209,7 +210,7 @@ export class ModelAnalyzer {
       const existing = layerGroups.get(layerType) || { count: 0, params: 0 };
       layerGroups.set(layerType, {
         count: existing.count + 1,
-        params: existing.params + layer.numParams
+        params: existing.params + layer.numParams,
       });
     }
 
@@ -218,13 +219,13 @@ export class ModelAnalyzer {
       lines.push(`  ${type}: ${stats.count} tensors, ${stats.params.toLocaleString()} params (${pct}%)`);
     }
 
-    lines.push(``);
-    lines.push(`Weight Statistics:`);
-    lines.push(`-`.repeat(60));
+    lines.push('');
+    lines.push('Weight Statistics:');
+    lines.push('-'.repeat(60));
 
     // Overall weight stats
-    const allMeans = layers.map(l => l.mean);
-    const allStds = layers.map(l => l.std);
+    const allMeans = layers.map((l) => l.mean);
+    const allStds = layers.map((l) => l.std);
     const avgMean = allMeans.reduce((a, b) => a + b, 0) / allMeans.length;
     const avgStd = allStds.reduce((a, b) => a + b, 0) / allStds.length;
     const avgSparsity = layers.reduce((a, l) => a + l.sparsity, 0) / layers.length;
@@ -261,13 +262,13 @@ export class ModelAnalyzer {
    * Benchmark model latency.
    */
   public static async benchmarkLatency<T>(
-    model: NeuralNetwork<T>,
+    _model: NeuralNetwork<T>,
     createInput: () => tf.Tensor,
     forwardFn: (input: tf.Tensor) => tf.Tensor | Promise<tf.Tensor>,
     options: {
       warmupRuns?: number;
       benchmarkRuns?: number;
-    } = {}
+    } = {},
   ): Promise<BaselineMetrics['latency']> {
     const { warmupRuns = 5, benchmarkRuns = 50 } = options;
 
@@ -304,11 +305,11 @@ export class ModelAnalyzer {
     return {
       mean,
       std,
-      min: times[0],
-      max: times[times.length - 1],
-      p50: times[Math.floor(times.length * 0.5)],
-      p95: times[Math.floor(times.length * 0.95)],
-      p99: times[Math.floor(times.length * 0.99)]
+      min: times[0] ?? 0,
+      max: times[times.length - 1] ?? 0,
+      p50: times[Math.floor(times.length * 0.5)] ?? 0,
+      p95: times[Math.floor(times.length * 0.95)] ?? 0,
+      p99: times[Math.floor(times.length * 0.99)] ?? 0,
     };
   }
 
@@ -323,12 +324,12 @@ export class ModelAnalyzer {
       taskType?: 'classification' | 'regression' | 'multiLabel';
       classNames?: string[];
       batchSize?: number;
-    } = {}
+    } = {},
   ): Promise<BaselineMetrics> {
     const {
       taskType = 'classification',
       classNames,
-      batchSize = 32
+      batchSize = 32,
     } = options;
 
     const numSamples = testData.inputs.shape[0];
@@ -349,7 +350,7 @@ export class ModelAnalyzer {
 
       const [predsData, labelsData] = await Promise.all([
         batchPreds.array() as Promise<number[][]>,
-        batchLabels.array() as Promise<number[][]>
+        batchLabels.array() as Promise<number[][]>,
       ]);
 
       predictions.push(...predsData);
@@ -373,7 +374,7 @@ export class ModelAnalyzer {
     const latency = await this.benchmarkLatency(
       model,
       () => tf.randomNormal([1, ...testData.inputs.shape.slice(1)]),
-      forwardFn
+      forwardFn,
     );
 
     return {
@@ -383,7 +384,7 @@ export class ModelAnalyzer {
       metrics,
       perClassMetrics,
       confusionMatrix,
-      latency
+      latency,
     };
   }
 
@@ -393,28 +394,43 @@ export class ModelAnalyzer {
   private static calculateClassificationMetrics(
     predictions: number[][],
     labels: number[][],
-    classNames?: string[]
+    classNames?: string[],
   ): {
     metrics: Record<string, number>;
     confusionMatrix: number[][];
     perClassMetrics: Record<string, Record<string, number>>;
   } {
-    const numClasses = predictions[0].length;
+    const firstPred = predictions[0];
+    if (!firstPred) {
+      return {
+        metrics: { accuracy: 0 },
+        confusionMatrix: [],
+        perClassMetrics: {},
+      };
+    }
+    const numClasses = firstPred.length;
     const numSamples = predictions.length;
 
     // Convert to class indices
-    const predIndices = predictions.map(p => p.indexOf(Math.max(...p)));
-    const trueIndices = labels.map(l => l.indexOf(Math.max(...l)));
+    const predIndices = predictions.map((p) => p.indexOf(Math.max(...p)));
+    const trueIndices = labels.map((l) => l.indexOf(Math.max(...l)));
 
     // Build confusion matrix
     const confusionMatrix: number[][] = Array(numClasses)
       .fill(null)
-      .map(() => Array(numClasses).fill(0));
+      .map(() => Array(numClasses).fill(0) as number[]);
 
     let correct = 0;
     for (let i = 0; i < numSamples; i++) {
-      confusionMatrix[trueIndices[i]][predIndices[i]]++;
-      if (trueIndices[i] === predIndices[i]) correct++;
+      const trueIdx = trueIndices[i];
+      const predIdx = predIndices[i];
+      if (trueIdx === undefined || predIdx === undefined) continue;
+      const row = confusionMatrix[trueIdx];
+      if (row) {
+        const curr = row[predIdx] ?? 0;
+        row[predIdx] = curr + 1;
+      }
+      if (trueIdx === predIdx) correct++;
     }
 
     const accuracy = correct / numSamples;
@@ -424,9 +440,12 @@ export class ModelAnalyzer {
 
     for (let c = 0; c < numClasses; c++) {
       const className = classNames?.[c] ?? `class_${c}`;
-      const tp = confusionMatrix[c][c];
-      const fp = confusionMatrix.reduce((sum, row, i) => i !== c ? sum + row[c] : sum, 0);
-      const fn = confusionMatrix[c].reduce((sum, val, i) => i !== c ? sum + val : sum, 0);
+      const classRow = confusionMatrix[c];
+      if (!classRow) continue;
+
+      const tp = classRow[c] ?? 0;
+      const fp = confusionMatrix.reduce((sum, row, i) => (i !== c ? sum + (row?.[c] ?? 0) : sum), 0);
+      const fn = classRow.reduce((sum, val, i) => (i !== c ? sum + (val ?? 0) : sum), 0);
       const tn = numSamples - tp - fp - fn;
 
       const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
@@ -439,21 +458,27 @@ export class ModelAnalyzer {
         recall,
         f1,
         specificity,
-        support: tp + fn
+        support: tp + fn,
       };
     }
 
     // Macro averages
     const classes = Object.values(perClassMetrics);
-    const macroPrecision = classes.reduce((s, c) => s + c.precision, 0) / numClasses;
-    const macroRecall = classes.reduce((s, c) => s + c.recall, 0) / numClasses;
-    const macroF1 = classes.reduce((s, c) => s + c.f1, 0) / numClasses;
+    const macroPrecision = classes.reduce((s, c) => s + (c.precision ?? 0), 0) / numClasses;
+    const macroRecall = classes.reduce((s, c) => s + (c.recall ?? 0), 0) / numClasses;
+    const macroF1 = classes.reduce((s, c) => s + (c.f1 ?? 0), 0) / numClasses;
 
     // Weighted averages (by support)
-    const totalSupport = classes.reduce((s, c) => s + c.support, 0);
-    const weightedPrecision = classes.reduce((s, c) => s + c.precision * c.support, 0) / totalSupport;
-    const weightedRecall = classes.reduce((s, c) => s + c.recall * c.support, 0) / totalSupport;
-    const weightedF1 = classes.reduce((s, c) => s + c.f1 * c.support, 0) / totalSupport;
+    const totalSupport = classes.reduce((s, c) => s + (c.support ?? 0), 0);
+    const weightedPrecision = totalSupport > 0
+      ? classes.reduce((s, c) => s + (c.precision ?? 0) * (c.support ?? 0), 0) / totalSupport
+      : 0;
+    const weightedRecall = totalSupport > 0
+      ? classes.reduce((s, c) => s + (c.recall ?? 0) * (c.support ?? 0), 0) / totalSupport
+      : 0;
+    const weightedF1 = totalSupport > 0
+      ? classes.reduce((s, c) => s + (c.f1 ?? 0) * (c.support ?? 0), 0) / totalSupport
+      : 0;
 
     return {
       metrics: {
@@ -463,10 +488,10 @@ export class ModelAnalyzer {
         macroF1,
         weightedPrecision,
         weightedRecall,
-        weightedF1
+        weightedF1,
       },
       confusionMatrix,
-      perClassMetrics
+      perClassMetrics,
     };
   }
 
@@ -475,10 +500,14 @@ export class ModelAnalyzer {
    */
   private static calculateRegressionMetrics(
     predictions: number[][],
-    labels: number[][]
+    labels: number[][],
   ): Record<string, number> {
     const numSamples = predictions.length;
-    const numOutputs = predictions[0].length;
+    const firstPred = predictions[0];
+    if (!firstPred) {
+      return { mse: 0, mae: 0, rmse: 0, r2: 0 };
+    }
+    const numOutputs = firstPred.length;
 
     let mse = 0;
     let mae = 0;
@@ -486,23 +515,32 @@ export class ModelAnalyzer {
     let ssTot = 0;
 
     // Calculate mean for R²
-    const labelMeans = Array(numOutputs).fill(0);
+    const labelMeans: number[] = Array(numOutputs).fill(0);
     for (const label of labels) {
       for (let j = 0; j < numOutputs; j++) {
-        labelMeans[j] += label[j];
+        const meanVal = labelMeans[j] ?? 0;
+        labelMeans[j] = meanVal + (label[j] ?? 0);
       }
     }
     for (let j = 0; j < numOutputs; j++) {
-      labelMeans[j] /= numSamples;
+      const meanVal = labelMeans[j] ?? 0;
+      labelMeans[j] = meanVal / numSamples;
     }
 
     for (let i = 0; i < numSamples; i++) {
+      const predRow = predictions[i];
+      const labelRow = labels[i];
+      if (!predRow || !labelRow) continue;
+
       for (let j = 0; j < numOutputs; j++) {
-        const diff = predictions[i][j] - labels[i][j];
+        const predVal = predRow[j] ?? 0;
+        const labelVal = labelRow[j] ?? 0;
+        const meanVal = labelMeans[j] ?? 0;
+        const diff = predVal - labelVal;
         mse += diff * diff;
         mae += Math.abs(diff);
         ssRes += diff * diff;
-        ssTot += (labels[i][j] - labelMeans[j]) ** 2;
+        ssTot += (labelVal - meanVal) ** 2;
       }
     }
 
@@ -520,7 +558,7 @@ export class ModelAnalyzer {
    */
   public static compareBaselines(
     baseline: BaselineMetrics,
-    current: BaselineMetrics
+    current: BaselineMetrics,
   ): ModelComparison {
     const improvements: Record<string, number> = {};
 
@@ -539,7 +577,7 @@ export class ModelAnalyzer {
       baseline,
       current,
       improvements,
-      paramChanges: [] // Filled when comparing model weights
+      paramChanges: [], // Filled when comparing model weights
     };
   }
 
@@ -548,7 +586,7 @@ export class ModelAnalyzer {
    */
   public static async compareParams<T>(
     modelA: NeuralNetwork<T>,
-    modelB: NeuralNetwork<T>
+    modelB: NeuralNetwork<T>,
   ): Promise<ModelComparison['paramChanges']> {
     const paramsA = modelA.getParamList();
     const paramsB = modelB.getParamList();
@@ -556,16 +594,19 @@ export class ModelAnalyzer {
     const changes: ModelComparison['paramChanges'] = [];
 
     for (let i = 0; i < paramsA.length; i++) {
-      const pathA = paramsA[i].path;
-      const tensorA = paramsA[i].tensor;
+      const paramA = paramsA[i];
+      if (!paramA) continue;
+
+      const pathA = paramA.path;
+      const tensorA = paramA.tensor;
 
       // Find matching param in B
-      const paramB = paramsB.find(p => p.path === pathA);
+      const paramB = paramsB.find((p) => p.path === pathA);
       if (!paramB) continue;
 
       const [dataA, dataB] = await Promise.all([
         tensorA.data(),
-        paramB.tensor.data()
+        paramB.tensor.data(),
       ]);
 
       let maxDiff = 0;
@@ -573,10 +614,12 @@ export class ModelAnalyzer {
       let sumSqDiff = 0;
 
       for (let j = 0; j < dataA.length; j++) {
-        const diff = Math.abs(dataA[j] - dataB[j]);
+        const valA = dataA[j] ?? 0;
+        const valB = dataB[j] ?? 0;
+        const diff = Math.abs(valA - valB);
         maxDiff = Math.max(maxDiff, diff);
-        sumDiff += dataA[j] - dataB[j];
-        sumSqDiff += (dataA[j] - dataB[j]) ** 2;
+        sumDiff += valA - valB;
+        sumSqDiff += (valA - valB) ** 2;
       }
 
       const meanDiff = sumDiff / dataA.length;
@@ -586,7 +629,7 @@ export class ModelAnalyzer {
         path: pathA,
         meanDiff,
         maxDiff,
-        l2Distance
+        l2Distance,
       });
     }
 
@@ -616,18 +659,18 @@ export class ModelAnalyzer {
       `${'='.repeat(60)}`,
       `Timestamp: ${baseline.timestamp}`,
       `Test Samples: ${baseline.testSamples}`,
-      ``,
-      `Metrics:`,
-      `-`.repeat(40)
+      '',
+      'Metrics:',
+      '-'.repeat(40),
     ];
 
     for (const [key, value] of Object.entries(baseline.metrics)) {
       lines.push(`  ${key}: ${(value * 100).toFixed(2)}%`);
     }
 
-    lines.push(``);
-    lines.push(`Latency (ms):`);
-    lines.push(`-`.repeat(40));
+    lines.push('');
+    lines.push('Latency (ms):');
+    lines.push('-'.repeat(40));
     lines.push(`  Mean: ${baseline.latency.mean.toFixed(2)}`);
     lines.push(`  Std: ${baseline.latency.std.toFixed(2)}`);
     lines.push(`  P50: ${baseline.latency.p50.toFixed(2)}`);
@@ -635,24 +678,24 @@ export class ModelAnalyzer {
     lines.push(`  P99: ${baseline.latency.p99.toFixed(2)}`);
 
     if (baseline.perClassMetrics) {
-      lines.push(``);
-      lines.push(`Per-Class Metrics:`);
-      lines.push(`-`.repeat(40));
+      lines.push('');
+      lines.push('Per-Class Metrics:');
+      lines.push('-'.repeat(40));
       for (const [className, metrics] of Object.entries(baseline.perClassMetrics)) {
         lines.push(`  ${className}:`);
-        lines.push(`    Precision: ${(metrics.precision * 100).toFixed(2)}%`);
-        lines.push(`    Recall: ${(metrics.recall * 100).toFixed(2)}%`);
-        lines.push(`    F1: ${(metrics.f1 * 100).toFixed(2)}%`);
-        lines.push(`    Support: ${metrics.support}`);
+        lines.push(`    Precision: ${((metrics.precision ?? 0) * 100).toFixed(2)}%`);
+        lines.push(`    Recall: ${((metrics.recall ?? 0) * 100).toFixed(2)}%`);
+        lines.push(`    F1: ${((metrics.f1 ?? 0) * 100).toFixed(2)}%`);
+        lines.push(`    Support: ${metrics.support ?? 0}`);
       }
     }
 
     if (baseline.confusionMatrix) {
-      lines.push(``);
-      lines.push(`Confusion Matrix:`);
-      lines.push(`-`.repeat(40));
+      lines.push('');
+      lines.push('Confusion Matrix:');
+      lines.push('-'.repeat(40));
       for (const row of baseline.confusionMatrix) {
-        lines.push(`  [${row.map(v => v.toString().padStart(4)).join(', ')}]`);
+        lines.push(`  [${row.map((v) => v.toString().padStart(4)).join(', ')}]`);
       }
     }
 
@@ -664,13 +707,13 @@ export class ModelAnalyzer {
    */
   public static generateComparisonReport(comparison: ModelComparison): string {
     const lines: string[] = [
-      `Model Comparison Report`,
+      'Model Comparison Report',
       `${'='.repeat(60)}`,
       `Baseline: ${comparison.baseline.modelName} (${comparison.baseline.timestamp})`,
       `Current: ${comparison.current.modelName} (${comparison.current.timestamp})`,
-      ``,
-      `Metric Improvements:`,
-      `-`.repeat(40)
+      '',
+      'Metric Improvements:',
+      '-'.repeat(40),
     ];
 
     for (const [key, improvement] of Object.entries(comparison.improvements)) {
@@ -680,9 +723,9 @@ export class ModelAnalyzer {
     }
 
     if (comparison.paramChanges.length > 0) {
-      lines.push(``);
-      lines.push(`Parameter Changes (top 10 by L2 distance):`);
-      lines.push(`-`.repeat(40));
+      lines.push('');
+      lines.push('Parameter Changes (top 10 by L2 distance):');
+      lines.push('-'.repeat(40));
 
       const sorted = [...comparison.paramChanges].sort((a, b) => b.l2Distance - a.l2Distance);
       for (const change of sorted.slice(0, 10)) {
@@ -710,7 +753,7 @@ export const QuickAnalysis = {
     return {
       params: analysis.totalParams,
       memoryMB: analysis.memoryMB,
-      trainable: analysis.trainableParams
+      trainable: analysis.trainableParams,
     };
   },
 
@@ -747,7 +790,7 @@ export const QuickAnalysis = {
 
     return {
       healthy: issues.length === 0,
-      issues
+      issues,
     };
   },
 
@@ -756,20 +799,20 @@ export const QuickAnalysis = {
    */
   async weightDrift<T>(
     modelA: NeuralNetwork<T>,
-    modelB: NeuralNetwork<T>
+    modelB: NeuralNetwork<T>,
   ): Promise<{
     totalDrift: number;
     layerDrifts: { path: string; drift: number }[];
   }> {
     const changes = await ModelAnalyzer.compareParams(modelA, modelB);
 
-    const layerDrifts = changes.map(c => ({
+    const layerDrifts = changes.map((c) => ({
       path: c.path,
-      drift: c.l2Distance
+      drift: c.l2Distance,
     }));
 
     const totalDrift = changes.reduce((sum, c) => sum + c.l2Distance, 0);
 
     return { totalDrift, layerDrifts };
-  }
+  },
 };

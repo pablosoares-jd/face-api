@@ -1,6 +1,6 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { ConvParams } from './types';
+import type { ConvParams } from './types';
 
 // eslint-disable-next-line no-unused-vars
 export function loadConvParamsFactory(extractWeightEntry: <T>(originalPath: string, paramRank: number) => T) {

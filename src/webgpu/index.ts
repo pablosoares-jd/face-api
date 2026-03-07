@@ -84,8 +84,8 @@ export async function getWebGPUInfo(): Promise<WebGPUInfo> {
 export async function initWebGPU(): Promise<void> {
   if (!isWebGPUSupported()) {
     throw new Error(
-      'WebGPU is not supported in this browser. ' +
-      'Requires Chrome 113+, Edge 113+, or compatible browser with WebGPU enabled.',
+      'WebGPU is not supported in this browser. '
+      + 'Requires Chrome 113+, Edge 113+, or compatible browser with WebGPU enabled.',
     );
   }
 
@@ -205,9 +205,9 @@ export async function initBestBackend(
       // Log success for debugging
       if (typeof console !== 'undefined') {
         const perf = getBackendPerformance().find((p) => p.backend === backend);
-        console.log(
-          `[face-api] Backend initialized: ${backend} ` +
-          `(${perf?.estimatedSpeedup}x speedup, ${perf?.parallelization} parallelization)`,
+        console.info(
+          `[face-api] Backend initialized: ${backend} `
+          + `(${perf?.estimatedSpeedup}x speedup, ${perf?.parallelization} parallelization)`,
         );
       }
 
@@ -329,8 +329,8 @@ export async function init(options: {
 
   if (!silent && !result.isPreferred && result.fallbackReason) {
     console.warn(
-      `[face-api] Could not use ${preferredBackend}: ${result.fallbackReason}. ` +
-      `Using ${result.backend} instead.`,
+      `[face-api] Could not use ${preferredBackend}: ${result.fallbackReason}. `
+      + `Using ${result.backend} instead.`,
     );
   }
 

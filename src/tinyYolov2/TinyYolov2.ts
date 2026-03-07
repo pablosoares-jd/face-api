@@ -1,8 +1,9 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { FaceDetection, Point } from '../classes/index';
-import { ParamMapping } from '../common/types';
-import { TNetInput } from '../dom/types';
+import type { Point } from '../classes/index';
+import { FaceDetection } from '../classes/index';
+import type { ParamMapping } from '../common/types';
+import type { TNetInput } from '../dom/types';
 import {
   BOX_ANCHORS,
   BOX_ANCHORS_SEPARABLE,
@@ -12,8 +13,8 @@ import {
   MEAN_RGB_SEPARABLE,
 } from './const';
 import { TinyYolov2Base } from './TinyYolov2Base';
-import { ITinyYolov2Options } from './TinyYolov2Options';
-import { TinyYolov2NetParams } from './types';
+import type { ITinyYolov2Options } from './TinyYolov2Options';
+import type { TinyYolov2NetParams } from './types';
 
 export class TinyYolov2 extends TinyYolov2Base {
   constructor(withSeparableConvs = true) {

@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import { IDimensions, IPoint } from '../classes/index';
+import type { IDimensions, IPoint } from '../classes/index';
 import { getContext2dOrThrow } from '../dom/getContext2dOrThrow';
 import { resolveInput } from '../dom/resolveInput';
 
@@ -101,7 +101,7 @@ export class DrawTextField {
   }
 
   draw(canvasArg: string | HTMLCanvasElement | CanvasRenderingContext2D) {
-    const canvas = resolveInput(canvasArg);
+    const canvas = resolveInput(canvasArg) as string | HTMLCanvasElement | CanvasRenderingContext2D;
     const ctx = getContext2dOrThrow(canvas);
 
     const {
@@ -113,7 +113,8 @@ export class DrawTextField {
     const textHeight = this.measureHeight();
 
     ctx.fillStyle = backgroundColor;
-    const upperLeft = this.getUpperLeft(ctx, canvas);
+    const canvasDims = canvas instanceof HTMLCanvasElement ? { width: canvas.width, height: canvas.height } : undefined;
+    const upperLeft = this.getUpperLeft(ctx, canvasDims);
     ctx.fillRect(upperLeft.x, upperLeft.y, maxTextWidth, textHeight);
 
     ctx.fillStyle = fontColor;

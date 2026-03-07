@@ -1,11 +1,11 @@
 import { FaceDetection } from '../classes/FaceDetection';
-import { Rect } from '../classes/Rect';
+import type { Rect } from '../classes/Rect';
 import { env } from '../env/index';
 import { createCanvas } from './createCanvas';
 import { getContext2dOrThrow } from './getContext2dOrThrow';
 import { imageTensorToCanvas } from './imageTensorToCanvas';
 import { toNetInput } from './toNetInput';
-import { TNetInput } from './types';
+import type { TNetInput } from './types';
 
 /**
  * Extracts the image regions containing the detected faces.

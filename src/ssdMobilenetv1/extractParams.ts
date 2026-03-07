@@ -1,7 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { ExtractWeightsFunction, ParamMapping, ConvParams, extractWeightsFactory } from '../common/index';
-import { MobileNetV1, NetParams, PointwiseConvParams, PredictionLayerParams } from './types';
+import type { ExtractWeightsFunction, ParamMapping, ConvParams } from '../common/index';
+import { extractWeightsFactory } from '../common/index';
+import type { MobileNetV1, NetParams, PointwiseConvParams, PredictionLayerParams } from './types';
 
 function extractorsFactory(extractWeights: ExtractWeightsFunction, paramMappings: ParamMapping[]) {
   function extractDepthwiseConvParams(numChannels: number, mappedPrefix: string): MobileNetV1.DepthwiseConvParams {

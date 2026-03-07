@@ -1,5 +1,6 @@
-import { extractFCParamsFactory, extractWeightsFactory, ParamMapping } from '../common/index';
-import { NetParams } from './types';
+import type { ParamMapping } from '../common/index';
+import { extractFCParamsFactory, extractWeightsFactory } from '../common/index';
+import type { NetParams } from './types';
 
 export function extractParams(weights: Float32Array): { params: NetParams, paramMappings: ParamMapping[] } {
   const paramMappings: ParamMapping[] = [];

@@ -1,11 +1,13 @@
 import { minBbox } from '../ops/index';
 import { getCenterPoint } from '../utils/index';
-import { IBoundingBox } from './BoundingBox';
+import type { IBoundingBox } from './BoundingBox';
 import { Box } from './Box';
-import { Dimensions, IDimensions } from './Dimensions';
+import type { IDimensions } from './Dimensions';
+import { Dimensions } from './Dimensions';
 import { FaceDetection } from './FaceDetection';
 import { Point } from './Point';
-import { IRect, Rect } from './Rect';
+import type { IRect } from './Rect';
+import { Rect } from './Rect';
 
 // face alignment constants
 const relX = 0.5;
@@ -105,22 +107,51 @@ export class FaceLandmarks implements IFaceLandmarks {
   private alignDlib(): Box {
     const centers = this.getRefPointsForAlignment();
 
+    // Validate reference points
     const [leftEyeCenter, rightEyeCenter, mouthCenter] = centers;
+    if (!leftEyeCenter || !rightEyeCenter || !mouthCenter) {
+      console.warn('FaceLandmarks.alignDlib: Missing reference points, falling back to minBbox');
+      return this.alignMinBbox(0.2);
+    }
+
     const distToMouth = (pt: Point) => mouthCenter.sub(pt).magnitude();
     const eyeToMouthDist = (distToMouth(leftEyeCenter) + distToMouth(rightEyeCenter)) / 2;
 
+    // Validate eye-to-mouth distance
+    if (!Number.isFinite(eyeToMouthDist) || eyeToMouthDist <= 0) {
+      console.warn('FaceLandmarks.alignDlib: Invalid eye-to-mouth distance, falling back to minBbox');
+      return this.alignMinBbox(0.2);
+    }
+
     const size = Math.floor(eyeToMouthDist / relScale);
+
+    // Ensure minimum size
+    const validSize = Math.max(size, 1);
 
     const refPoint = getCenterPoint(centers);
     // TODO: pad in case rectangle is out of image bounds
-    const x = Math.floor(Math.max(0, refPoint.x - (relX * size)));
-    const y = Math.floor(Math.max(0, refPoint.y - (relY * size)));
+    const x = Math.floor(Math.max(0, refPoint.x - (relX * validSize)));
+    const y = Math.floor(Math.max(0, refPoint.y - (relY * validSize)));
 
-    return new Rect(x, y, Math.min(size, this.imageWidth + x), Math.min(size, this.imageHeight + y));
+    return new Rect(x, y, Math.min(validSize, this.imageWidth + x), Math.min(validSize, this.imageHeight + y));
   }
 
   private alignMinBbox(padding: number): Box {
+    // Validate positions before computing bounding box
+    if (!this.positions || this.positions.length === 0) {
+      console.warn('FaceLandmarks.alignMinBbox: No landmark positions available');
+      // Return a minimal valid box at origin
+      return new Box({ x: 0, y: 0, width: 1, height: 1 });
+    }
+
     const box = minBbox(this.positions);
+
+    // Validate the resulting box has valid dimensions
+    if (box.width <= 0 || box.height <= 0) {
+      console.warn('FaceLandmarks.alignMinBbox: Invalid box dimensions from landmarks');
+      return new Box({ x: box.x, y: box.y, width: 1, height: 1 });
+    }
+
     return box.pad(box.width * padding, box.height * padding);
   }
 

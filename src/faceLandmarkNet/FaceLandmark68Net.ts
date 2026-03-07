@@ -1,5 +1,5 @@
 import { FaceFeatureExtractor } from '../faceFeatureExtractor/FaceFeatureExtractor';
-import { FaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
+import type { FaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
 import { FaceLandmark68NetBase } from './FaceLandmark68NetBase';
 
 export class FaceLandmark68Net extends FaceLandmark68NetBase<FaceFeatureExtractorParams> {

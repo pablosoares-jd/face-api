@@ -4,9 +4,11 @@ import { seperateWeightMaps } from '../faceProcessor/util';
 import { TinyXception } from '../xception/TinyXception';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
-import { AgeAndGenderPrediction, Gender, NetOutput, NetParams } from './types';
+import type { AgeAndGenderPrediction, NetOutput, NetParams } from './types';
+import { Gender } from './types';
 import { NeuralNetwork } from '../NeuralNetwork';
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
+import type { TNetInput } from '../dom/index';
+import { NetInput, toNetInput } from '../dom/index';
 
 export class AgeGenderNet extends NeuralNetwork<NetParams> {
   private _faceFeatureExtractor: TinyXception;
@@ -68,8 +70,9 @@ export class AgeGenderNet extends NeuralNetwork<NetParams> {
       ]);
 
       const predictionsByBatch = ageDataArrays.map((ageData, i) => {
-        const age = ageData[0];
-        const probMale = genderDataArrays[i][0];
+        const age = ageData[0] ?? 0;
+        const genderData = genderDataArrays[i];
+        const probMale = genderData ? (genderData[0] ?? 0.5) : 0.5;
         const isMale = probMale > 0.5;
         const gender = isMale ? Gender.MALE : Gender.FEMALE;
         const genderProbability = isMale ? probMale : (1 - probMale);

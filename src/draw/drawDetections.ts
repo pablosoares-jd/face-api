@@ -1,6 +1,8 @@
-import { Box, IBoundingBox, IRect } from '../classes/index';
+import type { IBoundingBox, IRect } from '../classes/index';
+import { Box } from '../classes/index';
 import { FaceDetection } from '../classes/FaceDetection';
-import { isWithFaceDetection, WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import { isWithFaceDetection } from '../factories/WithFaceDetection';
 import { round } from '../utils/index';
 import { DrawBox } from './DrawBox';
 

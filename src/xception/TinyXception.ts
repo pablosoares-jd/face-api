@@ -1,13 +1,15 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { ConvParams, depthwiseSeparableConv } from '../common/index';
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
+import type { ConvParams } from '../common/index';
+import { depthwiseSeparableConv } from '../common/index';
+import type { NetInput, TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { normalize } from '../ops/index';
 import { range } from '../utils/index';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
-import { MainBlockParams, ReductionBlockParams, TinyXceptionParams } from './types';
+import type { MainBlockParams, ReductionBlockParams, TinyXceptionParams } from './types';
 
 function conv(x: tf.Tensor4D, params: ConvParams, stride: [number, number]): tf.Tensor4D {
   return tf.add(tf.conv2d(x, params.filters, stride, 'same'), params.bias);
@@ -51,7 +53,10 @@ export class TinyXception extends NeuralNetwork<TinyXceptionParams> {
       out = reductionBlock(out, params.entry_flow.reduction_block_0, false);
       out = reductionBlock(out, params.entry_flow.reduction_block_1);
       range(this._numMainBlocks, 0, 1).forEach((idx) => {
-        out = mainBlock(out, params.middle_flow[`main_block_${idx}`]);
+        const blockParams = params.middle_flow[`main_block_${idx}`];
+        if (blockParams) {
+          out = mainBlock(out, blockParams);
+        }
       });
       out = reductionBlock(out, params.exit_flow.reduction_block);
       out = tf.relu(depthwiseSeparableConv(out, params.exit_flow.separable_conv, [1, 1]));

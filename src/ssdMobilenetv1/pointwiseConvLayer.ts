@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { PointwiseConvParams } from './types';
+import type { PointwiseConvParams } from './types';
 
 export function pointwiseConvLayer(x: tf.Tensor4D, params: PointwiseConvParams, strides: [number, number]) {
   return tf.tidy(() => {

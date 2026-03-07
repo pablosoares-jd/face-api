@@ -1,4 +1,4 @@
-import { IDimensions } from '../classes/Dimensions';
+import type { IDimensions } from '../classes/Dimensions';
 import { env } from '../env/index';
 import { getContext2dOrThrow } from './getContext2dOrThrow';
 import { getMediaDimensions } from './getMediaDimensions';
@@ -20,12 +20,24 @@ export function createCanvasFromMedia(media: HTMLImageElement | HTMLVideoElement
   }
 
   const { width, height } = dims || getMediaDimensions(media);
-  const canvas = createCanvas({ width, height });
 
-  if (media instanceof ImageData) {
-    getContext2dOrThrow(canvas).putImageData(media, 0, 0);
-  } else {
-    getContext2dOrThrow(canvas).drawImage(media, 0, 0, width, height);
+  try {
+    const canvas = createCanvas({ width, height });
+    if (media instanceof ImageData) {
+      getContext2dOrThrow(canvas).putImageData(media, 0, 0);
+    } else {
+      getContext2dOrThrow(canvas).drawImage(media, 0, 0, width, height);
+    }
+    return canvas;
+  } catch (err) {
+    // Fallback: reduced resolution for memory-constrained devices (iOS Safari)
+    if (media instanceof ImageData) {
+      throw err; // ImageData can't be downscaled here
+    }
+    const rw = Math.max(1, Math.round(width * 0.5));
+    const rh = Math.max(1, Math.round(height * 0.5));
+    const canvas = createCanvas({ width: rw, height: rh });
+    getContext2dOrThrow(canvas).drawImage(media, 0, 0, rw, rh);
+    return canvas;
   }
-  return canvas;
 }

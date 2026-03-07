@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 
 import { pointwiseConvLayer } from './pointwiseConvLayer';
-import { MobileNetV1 } from './types';
+import type { MobileNetV1 } from './types';
 
 const epsilon = 0.0010000000474974513;
 

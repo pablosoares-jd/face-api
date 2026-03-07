@@ -26,17 +26,18 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
-import { NeuralNetwork } from '../NeuralNetwork';
-import { AgeGenderNet } from '../ageGenderNet/AgeGenderNet';
-import { FaceExpressionNet } from '../faceExpressionNet/FaceExpressionNet';
-import { ModelTrainer, TrainingConfig, TrainingLogs } from './ModelTrainer';
+import type { NeuralNetwork } from '../NeuralNetwork';
+import type { AgeGenderNet } from '../ageGenderNet/AgeGenderNet';
+import type { FaceExpressionNet } from '../faceExpressionNet/FaceExpressionNet';
+import type { TrainingConfig, TrainingLogs } from './ModelTrainer';
+import { ModelTrainer } from './ModelTrainer';
 
 /**
  * Age and Gender labels.
  */
 export interface AgeGenderLabels {
-  ages: tf.Tensor1D;       // Float ages
-  genders: tf.Tensor1D;    // 0 = female, 1 = male
+  ages: tf.Tensor1D; // Float ages
+  genders: tf.Tensor1D; // 0 = female, 1 = male
 }
 
 /**
@@ -53,7 +54,7 @@ export class AgeGenderTrainer extends ModelTrainer<any> {
 
   constructor(
     model: AgeGenderNet,
-    options: { ageWeight?: number; genderWeight?: number } = {}
+    options: { ageWeight?: number; genderWeight?: number } = {},
   ) {
     super(model as unknown as NeuralNetwork<any>);
     this._ageWeight = options.ageWeight ?? 1.0;
@@ -70,18 +71,18 @@ export class AgeGenderTrainer extends ModelTrainer<any> {
   public async fitAgeGender(
     images: tf.Tensor4D,
     labels: AgeGenderLabels,
-    config: TrainingConfig = {}
+    config: TrainingConfig = {},
   ): Promise<TrainingLogs> {
     // Combine labels into single tensor for compatibility
     const combinedLabels = tf.concat([
       labels.ages.expandDims(1),
-      labels.genders.expandDims(1)
+      labels.genders.expandDims(1),
     ], 1);
 
     const result = await this.fit(images, combinedLabels, {
       ...config,
       loss: 'custom',
-      customLoss: (yTrue, yPred) => this._ageGenderLoss(yTrue, yPred)
+      customLoss: (yTrue, yPred) => this._ageGenderLoss(yTrue, yPred),
     });
 
     combinedLabels.dispose();
@@ -112,7 +113,7 @@ export class AgeGenderTrainer extends ModelTrainer<any> {
       // Combined weighted loss
       return tf.add(
         tf.mul(ageLoss, this._ageWeight),
-        tf.mul(genderLoss, this._genderWeight)
+        tf.mul(genderLoss, this._genderWeight),
       ) as tf.Scalar;
     });
   }
@@ -134,7 +135,7 @@ export class AgeGenderTrainer extends ModelTrainer<any> {
    */
   public async evaluate(
     images: tf.Tensor4D,
-    labels: AgeGenderLabels
+    labels: AgeGenderLabels,
   ): Promise<{ ageMAE: number; genderAccuracy: number }> {
     const model = this['_model'] as unknown as AgeGenderNet;
 
@@ -148,19 +149,20 @@ export class AgeGenderTrainer extends ModelTrainer<any> {
     // Calculate Age MAE
     let ageError = 0;
     for (let i = 0; i < ageData.length; i++) {
-      ageError += Math.abs(ageData[i] - trueAgeData[i]);
+      ageError += Math.abs((ageData[i] ?? 0) - (trueAgeData[i] ?? 0));
     }
-    const ageMAE = ageError / ageData.length;
+    const ageMAE = ageData.length > 0 ? ageError / ageData.length : 0;
 
     // Calculate Gender Accuracy
     let genderCorrect = 0;
     const numSamples = trueGenderData.length;
     for (let i = 0; i < numSamples; i++) {
-      const predMale = genderData[i * 2] < genderData[i * 2 + 1];
-      const trueMale = trueGenderData[i] === 1;
+      const genderIdx = i * 2;
+      const predMale = (genderData[genderIdx] ?? 0) < (genderData[genderIdx + 1] ?? 0);
+      const trueMale = (trueGenderData[i] ?? 0) === 1;
       if (predMale === trueMale) genderCorrect++;
     }
-    const genderAccuracy = genderCorrect / numSamples;
+    const genderAccuracy = numSamples > 0 ? genderCorrect / numSamples : 0;
 
     predictions.age.dispose();
     predictions.gender.dispose();
@@ -173,7 +175,7 @@ export class AgeGenderTrainer extends ModelTrainer<any> {
  * Expression labels enum.
  */
 export const EXPRESSIONS = [
-  'neutral', 'happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised'
+  'neutral', 'happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised',
 ] as const;
 
 export type Expression = typeof EXPRESSIONS[number];
@@ -196,7 +198,7 @@ export class ExpressionTrainer extends ModelTrainer<any> {
   public async fitExpressions(
     images: tf.Tensor4D,
     labels: tf.Tensor1D | tf.Tensor2D,
-    config: TrainingConfig = {}
+    config: TrainingConfig = {},
   ): Promise<TrainingLogs> {
     // Convert to one-hot if needed
     const oneHotLabels = labels.rank === 1
@@ -205,7 +207,7 @@ export class ExpressionTrainer extends ModelTrainer<any> {
 
     return this.fit(images, oneHotLabels, {
       ...config,
-      loss: 'categoricalCrossentropy'
+      loss: 'categoricalCrossentropy',
     });
   }
 
@@ -222,7 +224,7 @@ export class ExpressionTrainer extends ModelTrainer<any> {
    */
   public async evaluate(
     images: tf.Tensor4D,
-    labels: tf.Tensor1D
+    labels: tf.Tensor1D,
   ): Promise<{ accuracy: number; confusionMatrix: number[][] }> {
     const model = this['_model'] as unknown as FaceExpressionNet;
 
@@ -292,7 +294,7 @@ export class EmbeddingTrainer extends ModelTrainer<any> {
     anchors: tf.Tensor4D,
     positives: tf.Tensor4D,
     negatives: tf.Tensor4D,
-    config: TrainingConfig = {}
+    config: TrainingConfig = {},
   ): Promise<TrainingLogs> {
     // Stack triplets
     const inputs = tf.concat([anchors, positives, negatives], 0);
@@ -301,7 +303,7 @@ export class EmbeddingTrainer extends ModelTrainer<any> {
     return this.fit(inputs, labels, {
       ...config,
       loss: 'custom',
-      customLoss: (_, embeddings) => this._tripletLoss(embeddings, anchors.shape[0])
+      customLoss: (_, embeddings) => this._tripletLoss(embeddings, anchors.shape[0]),
     });
   }
 
@@ -319,7 +321,7 @@ export class EmbeddingTrainer extends ModelTrainer<any> {
 
       const loss = tf.maximum(
         0,
-        tf.add(tf.sub(positiveDist, negativeDist), this._margin)
+        tf.add(tf.sub(positiveDist, negativeDist), this._margin),
       );
 
       return tf.mean(loss) as tf.Scalar;
@@ -341,11 +343,11 @@ export class EmbeddingTrainer extends ModelTrainer<any> {
  */
 export function createAgeGenderLabels(
   ages: number[],
-  genders: ('male' | 'female')[]
+  genders: ('male' | 'female')[],
 ): AgeGenderLabels {
   return {
     ages: tf.tensor1d(ages, 'float32'),
-    genders: tf.tensor1d(genders.map(g => g === 'male' ? 1 : 0), 'float32')
+    genders: tf.tensor1d(genders.map((g) => (g === 'male' ? 1 : 0)), 'float32'),
   };
 }
 
@@ -353,7 +355,7 @@ export function createAgeGenderLabels(
  * Helper to create expression labels tensor.
  */
 export function createExpressionLabels(expressions: Expression[]): tf.Tensor1D {
-  return tf.tensor1d(expressions.map(e => EXPRESSIONS.indexOf(e)), 'int32');
+  return tf.tensor1d(expressions.map((e) => EXPRESSIONS.indexOf(e)), 'int32');
 }
 
 /**
@@ -366,20 +368,20 @@ export const PUBLIC_DATASETS = {
       name: 'UTKFace',
       url: 'https://susanqq.github.io/UTKFace/',
       description: '20,000+ face images with age, gender, ethnicity labels',
-      license: 'Academic use only'
+      license: 'Academic use only',
     },
     {
       name: 'IMDB-WIKI',
       url: 'https://data.vision.ee.ethz.ch/cvl/rrothe/imdb-wiki/',
       description: '500,000+ celebrity faces with age and gender',
-      license: 'Research only'
+      license: 'Research only',
     },
     {
       name: 'MORPH',
       url: 'https://www.faceaginggroup.com/morph/',
       description: '55,000 face images with age progression',
-      license: 'Academic license required'
-    }
+      license: 'Academic license required',
+    },
   ],
 
   // Expression
@@ -388,20 +390,20 @@ export const PUBLIC_DATASETS = {
       name: 'FER2013',
       url: 'https://www.kaggle.com/datasets/msambare/fer2013',
       description: '35,000 48x48 grayscale images, 7 expressions',
-      license: 'Kaggle'
+      license: 'Kaggle',
     },
     {
       name: 'AffectNet',
       url: 'http://mohammadmahoor.com/affectnet/',
       description: '1M+ faces with expression and valence-arousal',
-      license: 'Academic license required'
+      license: 'Academic license required',
     },
     {
       name: 'RAF-DB',
       url: 'http://www.whdeng.cn/RAF/model1.html',
       description: '30,000 facial expression images',
-      license: 'Academic use'
-    }
+      license: 'Academic use',
+    },
   ],
 
   // Face Recognition
@@ -410,20 +412,20 @@ export const PUBLIC_DATASETS = {
       name: 'LFW',
       url: 'http://vis-www.cs.umass.edu/lfw/',
       description: '13,000 labeled face images in the wild',
-      license: 'Research only'
+      license: 'Research only',
     },
     {
       name: 'CelebA',
       url: 'https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html',
       description: '200,000 celebrity faces with 40 attributes',
-      license: 'Non-commercial research'
+      license: 'Non-commercial research',
     },
     {
       name: 'VGGFace2',
       url: 'https://github.com/ox-vgg/vgg_face2',
       description: '3.3M faces of 9,000 subjects',
-      license: 'Creative Commons'
-    }
+      license: 'Creative Commons',
+    },
   ],
 
   // Landmarks
@@ -432,13 +434,13 @@ export const PUBLIC_DATASETS = {
       name: '300W',
       url: 'https://ibug.doc.ic.ac.uk/resources/300-W/',
       description: '300 indoor + outdoor faces with 68 landmarks',
-      license: 'Research only'
+      license: 'Research only',
     },
     {
       name: 'WFLW',
       url: 'https://wywu.github.io/projects/LAB/WFLW.html',
       description: '10,000 faces with 98 landmarks',
-      license: 'Academic use'
-    }
-  ]
+      license: 'Academic use',
+    },
+  ],
 };

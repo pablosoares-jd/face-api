@@ -1,15 +1,17 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { IDimensions, Point } from '../classes/index';
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
+import { Point } from '../classes/index';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { NetInput, TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
-import { FaceMeshOptions, IFaceMeshOptions, FACEMESH_LANDMARK_COUNTS } from './FaceMeshOptions';
+import type { IFaceMeshOptions } from './FaceMeshOptions';
+import { FaceMeshOptions, FACEMESH_LANDMARK_COUNTS } from './FaceMeshOptions';
 import { FaceMeshLandmarks } from './FaceMeshLandmarks';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
-import { NetParams } from './types';
+import type { NetParams } from './types';
 
 /**
  * FaceMesh - 468/478 point facial landmark detector from MediaPipe.
@@ -60,7 +62,8 @@ export class FaceMesh extends NeuralNetwork<NetParams> {
     try {
       await super.load(weightsOrUrl);
     } catch (error) {
-      console.warn('FaceMesh model not found, loading 68-point landmark fallback...');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`FaceMesh model not found (${errorMessage}), loading 68-point landmark fallback...`);
       this._fallbackNet = new FaceLandmark68Net();
       await this._fallbackNet.load(weightsOrUrl);
     }
@@ -200,7 +203,7 @@ export class FaceMesh extends NeuralNetwork<NetParams> {
         // Extract base 468 landmarks
         for (let i = 0; i < baseLandmarks; i++) {
           points[i] = new Point(
-            data[i * 3] as number,     // x
+            data[i * 3] as number, // x
             data[i * 3 + 1] as number, // y
           );
           zValues[i] = data[i * 3 + 2] as number; // z
@@ -305,7 +308,8 @@ export class FaceMesh extends NeuralNetwork<NetParams> {
     input: TNetInput,
     options: IFaceMeshOptions = {},
   ): Promise<FaceLandmarks68 | FaceLandmarks68[]> {
-    const opts = new FaceMeshOptions(options);
+    // FaceMeshOptions validates the options (throws on invalid)
+    new FaceMeshOptions(options);
 
     // Use fallback directly if primary not loaded
     if (!this.isPrimaryLoaded && this._fallbackNet?.isLoaded) {

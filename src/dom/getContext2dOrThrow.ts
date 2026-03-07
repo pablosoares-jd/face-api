@@ -6,7 +6,13 @@ export function getContext2dOrThrow(canvasArg: string | HTMLCanvasElement | Canv
   if (canvasArg instanceof CanvasRenderingContext2D) return canvasArg;
   const canvas = resolveInput(canvasArg);
   if (!(canvas instanceof Canvas)) throw new Error('resolveContext2d - expected canvas to be of instance of Canvas');
+  // Try with willReadFrequently hint (optimal for pixel reading operations)
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) throw new Error('resolveContext2d - canvas 2d context is null');
-  return ctx;
+  if (ctx) return ctx;
+
+  // Fallback: try without options (older iOS may reject under memory pressure)
+  const ctxFallback = canvas.getContext('2d');
+  if (ctxFallback) return ctxFallback;
+
+  throw new Error('resolveContext2d - canvas 2d context is null');
 }

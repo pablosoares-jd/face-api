@@ -1,7 +1,8 @@
 /* eslint-disable max-classes-per-file */
-import { FaceDetection } from '../classes/FaceDetection';
-import { TNetInput } from '../dom/index';
-import { extendWithFaceDetection, WithFaceDetection } from '../factories/WithFaceDetection';
+import type { FaceDetection } from '../classes/FaceDetection';
+import type { TNetInput } from '../dom/index';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import { extendWithFaceDetection } from '../factories/WithFaceDetection';
 import { SsdMobilenetv1Options } from '../ssdMobilenetv1/SsdMobilenetv1Options';
 import { TinyFaceDetectorOptions } from '../tinyFaceDetector/TinyFaceDetectorOptions';
 import { TinyYolov2Options } from '../tinyYolov2/index';
@@ -10,7 +11,7 @@ import { DetectAllFaceLandmarksTask, DetectSingleFaceLandmarksTask } from './Det
 import { nets } from './nets';
 import { PredictAllAgeAndGenderTask, PredictSingleAgeAndGenderTask } from './PredictAgeAndGenderTask';
 import { PredictAllFaceExpressionsTask, PredictSingleFaceExpressionsTask } from './PredictFaceExpressionsTask';
-import { FaceDetectionOptions } from './types';
+import type { FaceDetectionOptions } from './types';
 
 export class DetectFacesTaskBase<TReturn> extends ComposableTask<TReturn> {
   // eslint-disable-next-line no-unused-vars
@@ -68,9 +69,7 @@ export class DetectSingleFaceTask extends DetectFacesTaskBase<FaceDetection | un
     }
 
     // Find face with highest score using reduce for better performance
-    return faceDetections.reduce((best, current) =>
-      current.score > best.score ? current : best
-    );
+    return faceDetections.reduce((best, current) => (current.score > best.score ? current : best));
   }
 
   private async runAndExtendWithFaceDetection(): Promise<WithFaceDetection<{}> | undefined> {

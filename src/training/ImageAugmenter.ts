@@ -89,7 +89,7 @@ export class ImageAugmenter {
       cropScale: config.cropScale ?? { min: 0.9, max: 1.0 },
       noise: config.noise ?? 0,
       zoom: config.zoom ?? { min: 0.95, max: 1.05 },
-      probability: config.probability ?? 0.5
+      probability: config.probability ?? 0.5,
     };
   }
 
@@ -102,9 +102,12 @@ export class ImageAugmenter {
 
     // Horizontal flip
     if (this._config.flipHorizontal && this._shouldApply()) {
-      const flipped = tf.image.flipLeftRight(result);
+      const expanded = result.expandDims(0) as tf.Tensor4D;
+      const flipped = tf.image.flipLeftRight(expanded);
       result.dispose();
-      result = flipped as tf.Tensor3D;
+      result = flipped.squeeze([0]) as tf.Tensor3D;
+      flipped.dispose();
+      expanded.dispose();
       transformations.push('flipHorizontal');
     }
 
@@ -211,7 +214,7 @@ export class ImageAugmenter {
    */
   public augmentBatch(
     images: tf.Tensor4D,
-    augmentationsPerImage = 1
+    augmentationsPerImage = 1,
   ): tf.Tensor4D {
     const numImages = images.shape[0];
     const augmented: tf.Tensor3D[] = [];
@@ -284,7 +287,7 @@ export class ImageAugmenter {
       const transforms = [
         cos, -sin, cx * (1 - cos) + cy * sin,
         sin, cos, cy * (1 - cos) - cx * sin,
-        0, 0
+        0, 0,
       ];
 
       const expanded = tf.expandDims(image, 0) as tf.Tensor4D;
@@ -293,7 +296,7 @@ export class ImageAugmenter {
         [transforms],
         'bilinear',
         'constant',
-        0
+        0,
       );
 
       return tf.squeeze(rotated, [0]) as tf.Tensor3D;
@@ -333,7 +336,7 @@ export class ImageAugmenter {
       // Interpolate between grayscale and color
       const adjusted = tf.add(
         tf.mul(grayRgb, 1 - factor),
-        tf.mul(image, factor)
+        tf.mul(image, factor),
       );
 
       return tf.clipByValue(adjusted, 0, 255) as tf.Tensor3D;
@@ -346,7 +349,14 @@ export class ImageAugmenter {
   private _adjustHue(image: tf.Tensor3D, shift: number): tf.Tensor3D {
     return tf.tidy(() => {
       // Simple hue approximation - shift RGB channels
-      const [r, g, b] = tf.split(image, 3, -1);
+      const channels = tf.split(image, 3, -1);
+      const r = channels[0];
+      const g = channels[1];
+      const b = channels[2];
+
+      if (!r || !g || !b) {
+        return image;
+      }
 
       // Rotate through channels based on shift
       const shifted = shift > 0
@@ -357,7 +367,7 @@ export class ImageAugmenter {
       const blendFactor = Math.abs(shift);
       const blended = tf.add(
         tf.mul(image, 1 - blendFactor),
-        tf.mul(shifted, blendFactor)
+        tf.mul(shifted, blendFactor),
       );
 
       return tf.clipByValue(blended, 0, 255) as tf.Tensor3D;
@@ -385,7 +395,7 @@ export class ImageAugmenter {
       // Resize back to original size
       const resized = tf.image.resizeBilinear(
         cropped as tf.Tensor3D,
-        [height, width]
+        [height, width],
       );
 
       return resized as tf.Tensor3D;
@@ -421,21 +431,20 @@ export class ImageAugmenter {
 
         const cropped = tf.slice(image, [y, x, 0], [cropHeight, cropWidth, -1]);
         return tf.image.resizeBilinear(cropped as tf.Tensor3D, [height, width]) as tf.Tensor3D;
-      } else {
-        // Zoom out - pad and resize
-        const paddedHeight = Math.floor(height / factor);
-        const paddedWidth = Math.floor(width / factor);
-        const padY = Math.floor((paddedHeight - height) / 2);
-        const padX = Math.floor((paddedWidth - width) / 2);
-
-        const padded = tf.pad(image, [
-          [padY, paddedHeight - height - padY],
-          [padX, paddedWidth - width - padX],
-          [0, 0]
-        ]);
-
-        return tf.image.resizeBilinear(padded as tf.Tensor3D, [height, width]) as tf.Tensor3D;
       }
+      // Zoom out - pad and resize
+      const paddedHeight = Math.floor(height / factor);
+      const paddedWidth = Math.floor(width / factor);
+      const padY = Math.floor((paddedHeight - height) / 2);
+      const padX = Math.floor((paddedWidth - width) / 2);
+
+      const padded = tf.pad(image, [
+        [padY, paddedHeight - height - padY],
+        [padX, paddedWidth - width - padX],
+        [0, 0],
+      ]);
+
+      return tf.image.resizeBilinear(padded as tf.Tensor3D, [height, width]) as tf.Tensor3D;
     });
   }
 
@@ -470,12 +479,12 @@ export class AugmentationPipeline {
   public addStage(
     name: string,
     config: AugmentationConfig,
-    probability = 1.0
+    probability = 1.0,
   ): AugmentationPipeline {
     this._stages.push({
       name,
       augmenter: new ImageAugmenter({ ...config, probability: 1.0 }),
-      probability
+      probability,
     });
     return this;
   }
@@ -493,7 +502,7 @@ export class AugmentationPipeline {
         current.dispose();
         current = result.image;
         allTransformations.push(
-          ...result.transformations.map(t => `${stage.name}:${t}`)
+          ...result.transformations.map((t) => `${stage.name}:${t}`),
         );
       }
     }
@@ -505,7 +514,7 @@ export class AugmentationPipeline {
    * Get pipeline stages.
    */
   public getStages(): string[] {
-    return this._stages.map(s => s.name);
+    return this._stages.map((s) => s.name);
   }
 }
 
@@ -520,7 +529,7 @@ export const AugmentationPresets = {
     rotation: { min: -5, max: 5 },
     brightness: { min: 0.95, max: 1.05 },
     contrast: { min: 0.95, max: 1.05 },
-    probability: 0.3
+    probability: 0.3,
   } as AugmentationConfig,
 
   /** Medium augmentation - moderate changes */
@@ -532,7 +541,7 @@ export const AugmentationPresets = {
     contrast: { min: 0.8, max: 1.2 },
     saturation: { min: 0.8, max: 1.2 },
     cropScale: { min: 0.85, max: 1.0 },
-    probability: 0.5
+    probability: 0.5,
   } as AugmentationConfig,
 
   /** Heavy augmentation - significant changes */
@@ -547,7 +556,7 @@ export const AugmentationPresets = {
     cropScale: { min: 0.7, max: 1.0 },
     noise: 0.02,
     zoom: { min: 0.8, max: 1.2 },
-    probability: 0.7
+    probability: 0.7,
   } as AugmentationConfig,
 
   /** Face-specific augmentation */
@@ -560,6 +569,6 @@ export const AugmentationPresets = {
     saturation: { min: 0.9, max: 1.1 },
     cropScale: { min: 0.9, max: 1.0 },
     noise: 0.01,
-    probability: 0.5
-  } as AugmentationConfig
+    probability: 0.5,
+  } as AugmentationConfig,
 };

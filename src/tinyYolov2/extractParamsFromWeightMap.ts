@@ -1,12 +1,12 @@
-import * as tf from '@tensorflow/tfjs';
+import type * as tf from '@tensorflow/tfjs';
 
-import { ConvParams } from '../common/index';
+import type { ConvParams } from '../common/index';
 import { disposeUnusedWeightTensors } from '../common/disposeUnusedWeightTensors';
 import { loadSeparableConvParamsFactory } from '../common/extractSeparableConvParamsFactory';
 import { extractWeightEntryFactory } from '../common/extractWeightEntryFactory';
-import { ParamMapping } from '../common/types';
-import { TinyYolov2Config } from './config';
-import { BatchNorm, ConvWithBatchNorm, TinyYolov2NetParams } from './types';
+import type { ParamMapping } from '../common/types';
+import type { TinyYolov2Config } from './config';
+import type { BatchNorm, ConvWithBatchNorm, TinyYolov2NetParams } from './types';
 
 function extractorsFactory(weightMap: any, paramMappings: ParamMapping[]) {
   const extractWeightEntry = extractWeightEntryFactory(weightMap, paramMappings);

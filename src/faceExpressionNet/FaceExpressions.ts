@@ -15,7 +15,7 @@ export class FaceExpressions {
     }
 
     FACE_EXPRESSION_LABELS.forEach((expression, idx) => {
-      this[expression] = probabilities[idx];
+      this[expression] = probabilities[idx] ?? 0;
     });
   }
 

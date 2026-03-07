@@ -1,11 +1,13 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { IDimensions, Point } from '../classes/index';
+import type { IDimensions } from '../classes/index';
+import { Point } from '../classes/index';
 import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
-import { FaceFeatureExtractorParams, TinyFaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
+import type { NetInput, TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
+import type { FaceFeatureExtractorParams, TinyFaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
 import { FaceProcessor } from '../faceProcessor/FaceProcessor';
-import { isEven } from '../utils/index';
+// isEven was previously imported but removed - using direct comparison instead
 
 export abstract class FaceLandmark68NetBase<
   TExtractorParams extends FaceFeatureExtractorParams | TinyFaceFeatureExtractorParams
@@ -30,7 +32,9 @@ export abstract class FaceLandmark68NetBase<
       const heights: number[] = [];
 
       for (let i = 0; i < batchSize; i++) {
-        const { width, height } = inputDimensions[i];
+        const dims = inputDimensions[i];
+        if (!dims) continue;
+        const { width, height } = dims;
         paddingsX.push(width < height ? Math.abs(width - height) / 2 : 0);
         paddingsY.push(height < width ? Math.abs(width - height) / 2 : 0);
         widths.push(width);
@@ -42,8 +46,10 @@ export abstract class FaceLandmark68NetBase<
         const data: number[][] = [];
         for (let b = 0; b < batchSize; b++) {
           const row: number[] = [];
+          const xVal = xVals[b] ?? 0;
+          const yVal = yVals[b] ?? 0;
           for (let i = 0; i < 68; i++) {
-            row.push(xVals[b], yVals[b]);
+            row.push(xVal, yVal);
           }
           data.push(row);
         }
@@ -65,7 +71,7 @@ export abstract class FaceLandmark68NetBase<
       return this.postProcess(
         out,
         input.inputSize as number,
-        input.inputDimensions.map(([height, width]) => ({ height, width })),
+        input.inputDimensions.map((dims) => ({ height: dims[0] ?? 0, width: dims[1] ?? 0 })),
       );
     });
   }
@@ -90,8 +96,8 @@ export abstract class FaceLandmark68NetBase<
         const points: Point[] = new Array(68);
         for (let i = 0; i < 68; i++) {
           points[i] = new Point(
-            landmarksData[i * 2] as number,
-            landmarksData[i * 2 + 1] as number
+            landmarksData[i * 2] ?? 0,
+            landmarksData[i * 2 + 1] ?? 0,
           );
         }
 
@@ -101,7 +107,11 @@ export abstract class FaceLandmark68NetBase<
         });
       });
 
-      return netInput.isBatchInput ? landmarksForBatch : landmarksForBatch[0];
+      const firstResult = landmarksForBatch[0];
+      if (!netInput.isBatchInput && !firstResult) {
+        throw new Error('FaceLandmark68NetBase.detectLandmarks - no landmarks detected');
+      }
+      return netInput.isBatchInput ? landmarksForBatch : firstResult!;
     } finally {
       // Ensure tensors are disposed even if an error occurs
       landmarkTensors.forEach((t) => t.dispose());

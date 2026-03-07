@@ -26,14 +26,14 @@ const RIGHT_EYEBROW = [336, 296, 334, 293, 300];
 // Nose (9 points)
 const NOSE = [
   168, // Bridge top
-  6,   // Bridge
+  6, // Bridge
   197, // Bridge bottom
   195, // Tip
-  5,   // Bottom center
-  4,   // Left nostril
-  1,   // Tip
-  2,   // Right nostril
-  98,  // Left side
+  5, // Bottom center
+  4, // Left nostril
+  1, // Tip
+  2, // Right nostril
+  98, // Left side
 ];
 
 // Left eye (6 points)

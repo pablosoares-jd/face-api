@@ -2,11 +2,11 @@ import * as tf from '@tensorflow/tfjs';
 
 import { fullyConnectedLayer } from '../common/fullyConnectedLayer';
 import { NetInput } from '../dom/index';
-import { FaceFeatureExtractorParams, IFaceFeatureExtractor, TinyFaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
+import type { FaceFeatureExtractorParams, IFaceFeatureExtractor, TinyFaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { extractParams } from './extractParams';
 import { extractParamsFromWeightMap } from './extractParamsFromWeightMap';
-import { NetParams } from './types';
+import type { NetParams } from './types';
 import { seperateWeightMaps } from './util';
 
 export abstract class FaceProcessor<

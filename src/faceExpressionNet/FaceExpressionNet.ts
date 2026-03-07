@@ -1,8 +1,9 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { NetInput, TNetInput, toNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
+import { toNetInput } from '../dom/index';
 import { FaceFeatureExtractor } from '../faceFeatureExtractor/FaceFeatureExtractor';
-import { FaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
+import type { FaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
 import { FaceProcessor } from '../faceProcessor/FaceProcessor';
 import { FaceExpressions } from './FaceExpressions';
 
@@ -19,7 +20,7 @@ export class FaceExpressionNet extends FaceProcessor<FaceFeatureExtractorParams>
     return this.forwardInput(await toNetInput(input));
   }
 
-  public async predictExpressions(input: TNetInput) {
+  public async predictExpressions(input: TNetInput): Promise<FaceExpressions | FaceExpressions[]> {
     const netInput = await toNetInput(input);
     const out = await this.forwardInput(netInput);
 
@@ -34,9 +35,14 @@ export class FaceExpressionNet extends FaceProcessor<FaceFeatureExtractorParams>
       const predictionsByBatch = probabilitesByBatch
         .map((probabilites) => new FaceExpressions(probabilites as Float32Array));
 
-      return netInput.isBatchInput
-        ? predictionsByBatch
-        : predictionsByBatch[0];
+      if (netInput.isBatchInput) {
+        return predictionsByBatch;
+      }
+      const firstPrediction = predictionsByBatch[0];
+      if (!firstPrediction) {
+        throw new Error('FaceExpressionNet.predictExpressions - no predictions generated');
+      }
+      return firstPrediction;
     } finally {
       // Ensure tensors are disposed even if an error occurs
       tensors.forEach((t) => t.dispose());

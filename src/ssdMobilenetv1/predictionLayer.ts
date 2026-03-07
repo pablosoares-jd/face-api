@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 
 import { boxPredictionLayer } from './boxPredictionLayer';
 import { pointwiseConvLayer } from './pointwiseConvLayer';
-import { PredictionLayerParams } from './types';
+import type { PredictionLayerParams } from './types';
 
 export function predictionLayer(
   x: tf.Tensor4D,

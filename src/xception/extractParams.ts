@@ -1,7 +1,7 @@
 import { extractConvParamsFactory, extractSeparableConvParamsFactory, extractWeightsFactory } from '../common/index';
-import { ExtractWeightsFunction, ParamMapping } from '../common/types';
+import type { ExtractWeightsFunction, ParamMapping } from '../common/types';
 import { range } from '../utils/index';
-import { MainBlockParams, ReductionBlockParams, TinyXceptionParams } from './types';
+import type { MainBlockParams, ReductionBlockParams, TinyXceptionParams } from './types';
 
 function extractorsFactory(extractWeights: ExtractWeightsFunction, paramMappings: ParamMapping[]) {
   const extractConvParams = extractConvParamsFactory(extractWeights, paramMappings);

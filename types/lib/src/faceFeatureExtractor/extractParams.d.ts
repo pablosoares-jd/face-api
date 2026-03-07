@@ -1,5 +1,5 @@
-import { ParamMapping } from '../common/index';
-import { FaceFeatureExtractorParams } from './types';
+import type { ParamMapping } from '../common/index';
+import type { FaceFeatureExtractorParams } from './types';
 export declare function extractParams(weights: Float32Array): {
     params: FaceFeatureExtractorParams;
     paramMappings: ParamMapping[];

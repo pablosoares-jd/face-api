@@ -1,6 +1,6 @@
-import { IBoundingBox } from './BoundingBox';
+import type { IBoundingBox } from './BoundingBox';
 import { LabeledBox } from './LabeledBox';
-import { IRect } from './Rect';
+import type { IRect } from './Rect';
 export declare class PredictedBox extends LabeledBox {
     static assertIsValidPredictedBox(box: any, callee: string): void;
     private _score;

@@ -1,7 +1,7 @@
-import { TNetInput } from '../dom/index';
-import { WithFaceDescriptor } from '../factories/WithFaceDescriptor';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { TNetInput } from '../dom/index';
+import type { WithFaceDescriptor } from '../factories/WithFaceDescriptor';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
 import { ComposableTask } from './ComposableTask';
 import { PredictAllAgeAndGenderWithFaceAlignmentTask, PredictSingleAgeAndGenderWithFaceAlignmentTask } from './PredictAgeAndGenderTask';
 import { PredictAllFaceExpressionsWithFaceAlignmentTask, PredictSingleFaceExpressionsWithFaceAlignmentTask } from './PredictFaceExpressionsTask';

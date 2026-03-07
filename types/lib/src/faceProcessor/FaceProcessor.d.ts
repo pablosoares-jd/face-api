@@ -1,8 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 import { NetInput } from '../dom/index';
-import { FaceFeatureExtractorParams, IFaceFeatureExtractor, TinyFaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
+import type { FaceFeatureExtractorParams, IFaceFeatureExtractor, TinyFaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
 import { NeuralNetwork } from '../NeuralNetwork';
-import { NetParams } from './types';
+import type { NetParams } from './types';
 export declare abstract class FaceProcessor<TExtractorParams extends FaceFeatureExtractorParams | TinyFaceFeatureExtractorParams> extends NeuralNetwork<NetParams> {
     protected _faceFeatureExtractor: IFaceFeatureExtractor<TExtractorParams>;
     constructor(_name: string, faceFeatureExtractor: IFaceFeatureExtractor<TExtractorParams>);

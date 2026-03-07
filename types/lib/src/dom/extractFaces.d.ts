@@ -1,6 +1,6 @@
 import { FaceDetection } from '../classes/FaceDetection';
-import { Rect } from '../classes/Rect';
-import { TNetInput } from './types';
+import type { Rect } from '../classes/Rect';
+import type { TNetInput } from './types';
 /**
  * Extracts the image regions containing the detected faces.
  *

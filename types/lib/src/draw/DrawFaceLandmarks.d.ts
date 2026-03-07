@@ -1,6 +1,6 @@
 import { FaceLandmarks } from '../classes/FaceLandmarks';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
 export interface IDrawFaceLandmarksOptions {
     drawLines?: boolean;
     drawPoints?: boolean;

@@ -1,9 +1,9 @@
 import * as tf from '@tensorflow/tfjs';
-import { NetInput, TNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { FaceRecognitionNet } from '../faceRecognitionNet/FaceRecognitionNet';
-import { IAdaFaceOptions } from './AdaFaceOptions';
-import { NetParams } from './types';
+import type { IAdaFaceOptions } from './AdaFaceOptions';
+import type { NetParams } from './types';
 /**
  * AdaFace - Adaptive Face Recognition for varying image quality.
  *

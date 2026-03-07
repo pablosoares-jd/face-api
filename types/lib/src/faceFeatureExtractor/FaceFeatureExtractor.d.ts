@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
-import { NetInput, TNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
-import { FaceFeatureExtractorParams, IFaceFeatureExtractor } from './types';
+import type { FaceFeatureExtractorParams, IFaceFeatureExtractor } from './types';
 export declare class FaceFeatureExtractor extends NeuralNetwork<FaceFeatureExtractorParams> implements IFaceFeatureExtractor<FaceFeatureExtractorParams> {
     constructor();
     forwardInput(input: NetInput): tf.Tensor4D;

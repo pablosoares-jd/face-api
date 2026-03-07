@@ -1,11 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
 import { Point, Rect } from '../classes/index';
 import { FaceDetection } from '../classes/FaceDetection';
-import { NetInput, TNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { SsdMobilenetv1 } from '../ssdMobilenetv1/SsdMobilenetv1';
-import { IBlazeFaceOptions } from './BlazeFaceOptions';
-import { NetParams } from './types';
+import type { IBlazeFaceOptions } from './BlazeFaceOptions';
+import type { NetParams } from './types';
 /**
  * BlazeFace facial keypoints.
  * These are the 6 keypoints returned by BlazeFace.
@@ -137,14 +137,6 @@ export declare class BlazeFace extends NeuralNetwork<NetParams> {
      * Create default keypoints based on bounding box (for fallback).
      */
     private createDefaultKeypoints;
-    /**
-     * Non-maximum suppression for detected boxes.
-     */
-    private nonMaxSuppression;
-    /**
-     * Calculate IOU between two boxes.
-     */
-    private calculateIOU;
     /**
      * Dispose of resources.
      */

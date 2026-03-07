@@ -1,5 +1,5 @@
-import { ParamMapping } from '../common/types';
-import { NetParams } from './types';
+import type { ParamMapping } from '../common/types';
+import type { NetParams } from './types';
 /**
  * Extract AdaFace parameters from weight array.
  * Note: This is a placeholder - actual weights need to be converted from PyTorch format.

@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
-import { NetInput, TNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
-import { TinyXceptionParams } from './types';
+import type { TinyXceptionParams } from './types';
 export declare class TinyXception extends NeuralNetwork<TinyXceptionParams> {
     private _numMainBlocks;
     constructor(numMainBlocks: number);

@@ -1,5 +1,5 @@
 import { NetInput } from './NetInput';
-import { TNetInput } from './types';
+import type { TNetInput } from './types';
 /**
  * Validates the input to make sure, they are valid net inputs and awaits all media elements
  * to be finished loading.

@@ -1,1 +1,1 @@
-export declare function isMediaElement(input: any): input is HTMLCanvasElement | HTMLImageElement | HTMLVideoElement;
+export declare function isMediaElement(input: unknown): input is HTMLImageElement | HTMLCanvasElement | HTMLVideoElement;

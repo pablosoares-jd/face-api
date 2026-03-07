@@ -1,4 +1,4 @@
-import { IDimensions, IPoint } from '../classes/index';
+import type { IDimensions, IPoint } from '../classes/index';
 export declare enum AnchorPosition {
     TOP_LEFT = "TOP_LEFT",
     TOP_RIGHT = "TOP_RIGHT",

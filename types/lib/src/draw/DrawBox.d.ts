@@ -1,5 +1,7 @@
-import { Box, IBoundingBox, IRect } from '../classes/index';
-import { DrawTextFieldOptions, IDrawTextFieldOptions } from './DrawTextField';
+import type { IBoundingBox, IRect } from '../classes/index';
+import { Box } from '../classes/index';
+import type { IDrawTextFieldOptions } from './DrawTextField';
+import { DrawTextFieldOptions } from './DrawTextField';
 export interface IDrawBoxOptions {
     boxColor?: string;
     lineWidth?: number;

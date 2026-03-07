@@ -1,2 +1,2 @@
-import { ParamMapping } from './types';
+import type { ParamMapping } from './types';
 export declare function disposeUnusedWeightTensors(weightMap: any, paramMappings: ParamMapping[]): void;

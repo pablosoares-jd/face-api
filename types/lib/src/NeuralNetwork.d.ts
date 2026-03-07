@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import { ParamMapping } from './common/index';
+import type { ParamMapping } from './common/index';
 /**
  * Serialized model weights with metadata.
  */

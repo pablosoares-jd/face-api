@@ -1,4 +1,4 @@
-import { ConvParams, SeparableConvParams } from '../common/index';
+import type { ConvParams, SeparableConvParams } from '../common/index';
 export type ReductionBlockParams = {
     separable_conv0: SeparableConvParams;
     separable_conv1: SeparableConvParams;

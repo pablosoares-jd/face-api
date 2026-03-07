@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
-import { Dimensions } from '../classes/Dimensions';
-import { TResolvedNetInput } from './types';
+import type { Dimensions } from '../classes/Dimensions';
+import type { TResolvedNetInput } from './types';
 export declare class NetInput {
     private _imageTensors;
     private _canvases;

@@ -1,10 +1,10 @@
 import { FaceMatch } from '../classes/FaceMatch';
 import { LabeledFaceDescriptors } from '../classes/LabeledFaceDescriptors';
-import { WithFaceDescriptor } from '../factories/index';
+import type { WithFaceDescriptor } from '../factories/index';
 export declare class FaceMatcher {
     private _labeledDescriptors;
     private _distanceThreshold;
-    constructor(inputs: LabeledFaceDescriptors | WithFaceDescriptor<any> | Float32Array | Array<LabeledFaceDescriptors | WithFaceDescriptor<any> | Float32Array>, distanceThreshold?: number);
+    constructor(inputs: LabeledFaceDescriptors | WithFaceDescriptor<unknown> | Float32Array | Array<LabeledFaceDescriptors | WithFaceDescriptor<unknown> | Float32Array>, distanceThreshold?: number);
     get labeledDescriptors(): LabeledFaceDescriptors[];
     get distanceThreshold(): number;
     computeMeanDistance(queryDescriptor: Float32Array, descriptors: Float32Array[]): number;

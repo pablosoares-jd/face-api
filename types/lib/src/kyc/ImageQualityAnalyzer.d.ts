@@ -1,5 +1,5 @@
-import { FaceDetection } from '../classes/FaceDetection';
-import { TNetInput } from '../dom/index';
+import type { FaceDetection } from '../classes/FaceDetection';
+import type { TNetInput } from '../dom/index';
 /**
  * Image quality metrics result.
  */
@@ -20,6 +20,9 @@ export interface ImageQualityResult {
  * - Laplacian variance for sharpness/blur detection
  * - Mean pixel intensity for brightness
  * - Standard deviation for contrast
+ *
+ * All tensor operations use async data() instead of blocking dataSync()
+ * for better GPU pipeline efficiency.
  */
 export declare class ImageQualityAnalyzer {
     /**
@@ -28,6 +31,7 @@ export declare class ImageQualityAnalyzer {
     analyze(input: TNetInput, detection: FaceDetection): Promise<ImageQualityResult>;
     /**
      * Convert RGB tensor to grayscale.
+     * Assumes input is in [0, 255] range and normalizes to [0, 1].
      */
     private toGrayscale;
     /**
@@ -35,18 +39,16 @@ export declare class ImageQualityAnalyzer {
      */
     private extractFaceRegion;
     /**
-     * Calculate sharpness using Laplacian variance.
+     * Calculate sharpness tensor using Laplacian variance.
+     * Returns variance tensor for async extraction.
      * Higher variance = sharper image.
      */
-    private calculateSharpness;
+    private calculateSharpnessTensor;
     /**
-     * Calculate brightness as mean pixel intensity.
+     * Calculate contrast tensor as variance of pixel intensities.
+     * Returns variance tensor for async extraction.
      */
-    private calculateBrightness;
-    /**
-     * Calculate contrast as standard deviation of pixel intensities.
-     */
-    private calculateContrast;
+    private calculateContrastTensor;
     /**
      * Get default result when analysis fails.
      */

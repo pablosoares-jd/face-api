@@ -1,7 +1,7 @@
-import * as tf from '@tensorflow/tfjs';
-import { BoundingBox } from '../classes';
-import { ConvParams } from '../common/index';
-import { SeparableConvParams } from '../common/types';
+import type * as tf from '@tensorflow/tfjs';
+import type { BoundingBox } from '../classes';
+import type { ConvParams } from '../common/index';
+import type { SeparableConvParams } from '../common/types';
 export type BatchNorm = {
     sub: tf.Tensor1D;
     truediv: tf.Tensor1D;

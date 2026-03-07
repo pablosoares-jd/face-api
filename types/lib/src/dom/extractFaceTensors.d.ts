@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import { Rect } from '../classes/index';
+import type { Rect } from '../classes/index';
 import { FaceDetection } from '../classes/FaceDetection';
 /**
  * Extracts the tensors of the image regions containing the detected faces.

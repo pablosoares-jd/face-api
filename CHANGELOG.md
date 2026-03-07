@@ -1,6 +1,6 @@
 # @vladmandic/face-api  
 
-  Version: **1.7.15**  
+  Version: **1.7.16**  
   Description: **FaceAPI: AI-powered Face Detection & Rotation Tracking, Face Description & Recognition, Age & Gender & Emotion Prediction for Browser and NodeJS using TensorFlow/JS**  
   
   Author: **Vladimir Mandic <mandic00@live.com>**  
@@ -9,8 +9,9 @@
   
 ## Changelog
   
-### **HEAD -> claude/analyze-and-improve-project-Duw7M** 2026/01/04 pablo.soares@3bstecnologias.com.br
+### **HEAD -> claude/analyze-and-improve-project-Duw7M** 2026/03/07 pablo.soares@3bstecnologias.com.br
 
+- fix e run
 - feat: add gpu benchmark for webgl/webgpu in browser
 - feat: add comprehensive model benchmark script
 

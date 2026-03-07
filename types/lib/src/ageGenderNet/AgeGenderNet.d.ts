@@ -1,8 +1,9 @@
 import * as tf from '@tensorflow/tfjs';
 import { TinyXception } from '../xception/TinyXception';
-import { AgeAndGenderPrediction, NetOutput, NetParams } from './types';
+import type { AgeAndGenderPrediction, NetOutput, NetParams } from './types';
 import { NeuralNetwork } from '../NeuralNetwork';
-import { NetInput, TNetInput } from '../dom/index';
+import type { TNetInput } from '../dom/index';
+import { NetInput } from '../dom/index';
 export declare class AgeGenderNet extends NeuralNetwork<NetParams> {
     private _faceFeatureExtractor;
     constructor(faceFeatureExtractor?: TinyXception);

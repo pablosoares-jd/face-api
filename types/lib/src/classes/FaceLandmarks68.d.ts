@@ -1,5 +1,5 @@
 import { FaceLandmarks } from './FaceLandmarks';
-import { Point } from './Point';
+import type { Point } from './Point';
 export declare class FaceLandmarks68 extends FaceLandmarks {
     getJawOutline(): Point[];
     getLeftEyeBrow(): Point[];

@@ -286,14 +286,6 @@ export declare class BlazeFace extends NeuralNetwork<NetParams_5> {
      */
     private createDefaultKeypoints;
     /**
-     * Non-maximum suppression for detected boxes.
-     */
-    private nonMaxSuppression;
-    /**
-     * Calculate IOU between two boxes.
-     */
-    private calculateIOU;
-    /**
      * Dispose of resources.
      */
     dispose(throwOnRedispose?: boolean): void;
@@ -359,9 +351,9 @@ export declare class BoundingBox extends Box implements IBoundingBox {
     constructor(left: number, top: number, right: number, bottom: number, allowNegativeDimensions?: boolean);
 }
 
-export declare class Box<BoxType = any> implements IBoundingBox, IRect {
-    static isRect(rect: any): boolean;
-    static assertIsValidBox(box: any, callee: string, allowNegativeDimensions?: boolean): void;
+export declare class Box<BoxType = unknown> implements IBoundingBox, IRect {
+    static isRect(rect: unknown): rect is IRect;
+    static assertIsValidBox(box: unknown, callee: string, allowNegativeDimensions?: boolean): void;
     private _x;
     private _y;
     private _width;
@@ -399,8 +391,14 @@ export declare class Box<BoxType = any> implements IBoundingBox, IRect {
         w: number;
         h: number;
     };
-    calibrate(region: Box): Box<any>;
+    calibrate(region: Box): Box<unknown>;
 }
+
+/**
+ * Box format for array-based IOU calculation.
+ * Format: [top, left, bottom, right] or [y1, x1, y2, x2]
+ */
+export declare type BoxArray = [number, number, number, number] | number[];
 
 declare type BoxPredictionParams = {
     box_encoding_predictor: ConvParams;
@@ -409,8 +407,28 @@ declare type BoxPredictionParams = {
 
 export declare function bufferToImage(buf: Blob): Promise<HTMLImageElement>;
 
+/**
+ * Base class for composable async tasks in face-api.
+ * Implements a Promise-like interface for chaining operations.
+ */
 export declare class ComposableTask<T> {
-    then(onfulfilled: (value: T) => T | PromiseLike<T>): Promise<T>;
+    /**
+     * Implements the Promise thenable interface.
+     * @param onfulfilled Called when the task completes successfully
+     * @param onrejected Called when the task fails (optional)
+     * @returns Promise that resolves with the transformed value
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null, onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null): Promise<TResult1 | TResult2>;
+    /**
+     * Implements the Promise catch interface.
+     * @param onrejected Called when the task fails
+     * @returns Promise that handles the rejection
+     */
+    catch<TResult = never>(onrejected?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null): Promise<T | TResult>;
+    /**
+     * Execute the task. Must be implemented by subclasses.
+     * @returns Promise with the task result
+     */
     run(): Promise<T>;
 }
 
@@ -459,7 +477,7 @@ export declare interface ConvBlockParams {
 /**
  * Convolution + BatchNorm parameters.
  */
-export declare interface ConvBnParams {
+declare interface ConvBnParams {
     weights: tf.Tensor4D;
     stride?: number;
     bn_mean: tf.Tensor1D;
@@ -506,7 +524,7 @@ export declare function createTinyYolov2(weights: Float32Array, withSeparableCon
 /**
  * Decoder parameters.
  */
-export declare interface DecoderParams {
+declare interface DecoderParams {
     conv1: FaceMeshConvBlockParams;
 }
 
@@ -736,7 +754,7 @@ declare class DrawTextFieldOptions implements IDrawTextFieldOptions {
 /**
  * Encoder parameters.
  */
-export declare interface EncoderParams {
+declare interface EncoderParams {
     conv1: FaceMeshConvBlockParams;
     conv2: FaceMeshConvBlockParams;
     conv3: FaceMeshConvBlockParams;
@@ -823,7 +841,7 @@ export declare class FaceExpressionNet extends FaceProcessor<FaceFeatureExtracto
     constructor(faceFeatureExtractor?: FaceFeatureExtractor);
     forwardInput(input: NetInput | tf.Tensor4D): tf.Tensor2D;
     forward(input: TNetInput): Promise<tf.Tensor2D>;
-    predictExpressions(input: TNetInput): Promise<FaceExpressions | FaceExpressions[] | undefined>;
+    predictExpressions(input: TNetInput): Promise<FaceExpressions | FaceExpressions[]>;
     protected getDefaultModelName(): string;
     protected getClassifierChannelsIn(): number;
     protected getClassifierChannelsOut(): number;
@@ -949,7 +967,7 @@ export declare class FaceMatch implements IFaceMatch {
 export declare class FaceMatcher {
     private _labeledDescriptors;
     private _distanceThreshold;
-    constructor(inputs: LabeledFaceDescriptors | WithFaceDescriptor<any> | Float32Array | Array<LabeledFaceDescriptors | WithFaceDescriptor<any> | Float32Array>, distanceThreshold?: number);
+    constructor(inputs: LabeledFaceDescriptors | WithFaceDescriptor<unknown> | Float32Array | Array<LabeledFaceDescriptors | WithFaceDescriptor<unknown> | Float32Array>, distanceThreshold?: number);
     get labeledDescriptors(): LabeledFaceDescriptors[];
     get distanceThreshold(): number;
     computeMeanDistance(queryDescriptor: Float32Array, descriptors: Float32Array[]): number;
@@ -1101,7 +1119,7 @@ export declare const FACEMESH_TO_68_MAPPING: number[];
 /**
  * FaceMesh convolution block parameters.
  */
-export declare interface FaceMeshConvBlockParams {
+declare interface FaceMeshConvBlockParams {
     weights: tf.Tensor4D;
     bn_mean: tf.Tensor1D;
     bn_variance: tf.Tensor1D;
@@ -1255,7 +1273,7 @@ export declare class FaceRecognitionNet extends NeuralNetwork<NetParams_3> {
     constructor();
     forwardInput(input: NetInput): tf.Tensor2D;
     forward(input: TNetInput): Promise<tf.Tensor2D>;
-    computeFaceDescriptor(input: TNetInput): Promise<Float32Array | Float32Array[]>;
+    computeFaceDescriptor(input: TNetInput, validateInput?: boolean): Promise<Float32Array | Float32Array[]>;
     protected getDefaultModelName(): string;
     protected extractParamsFromWeightMap(weightMap: tf.NamedTensorMap): {
         params: NetParams_3;
@@ -1267,18 +1285,18 @@ export declare class FaceRecognitionNet extends NeuralNetwork<NetParams_3> {
     };
 }
 
-/**
- * Fully connected layer parameters.
- */
-export declare interface FCParams {
-    weights: tf.Tensor2D;
-    bias: tf.Tensor1D;
-}
-
-declare type FCParams_2 = {
+declare type FCParams = {
     weights: tf.Tensor2D;
     bias: tf.Tensor1D;
 };
+
+/**
+ * Fully connected layer parameters.
+ */
+declare interface FCParams_2 {
+    weights: tf.Tensor2D;
+    bias: tf.Tensor1D;
+}
 
 export declare function fetchImage(uri: string): Promise<HTMLImageElement>;
 
@@ -1324,6 +1342,13 @@ export declare function getCurrentBackend(): string;
 
 declare function getEnv(): Environment;
 
+/**
+ * Get the dimensions of a media element or dimensions object.
+ *
+ * @param input Media element or object with width/height properties
+ * @returns Dimensions object with width and height
+ * @throws Error if dimensions are invalid (zero or negative)
+ */
 export declare function getMediaDimensions(input: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | IDimensions): Dimensions;
 
 /**
@@ -1507,6 +1532,9 @@ export declare interface IFaceMeshOptions {
  * - Laplacian variance for sharpness/blur detection
  * - Mean pixel intensity for brightness
  * - Standard deviation for contrast
+ *
+ * All tensor operations use async data() instead of blocking dataSync()
+ * for better GPU pipeline efficiency.
  */
 export declare class ImageQualityAnalyzer {
     /**
@@ -1515,6 +1543,7 @@ export declare class ImageQualityAnalyzer {
     analyze(input: TNetInput, detection: FaceDetection): Promise<ImageQualityResult>;
     /**
      * Convert RGB tensor to grayscale.
+     * Assumes input is in [0, 255] range and normalizes to [0, 1].
      */
     private toGrayscale;
     /**
@@ -1522,18 +1551,16 @@ export declare class ImageQualityAnalyzer {
      */
     private extractFaceRegion;
     /**
-     * Calculate sharpness using Laplacian variance.
+     * Calculate sharpness tensor using Laplacian variance.
+     * Returns variance tensor for async extraction.
      * Higher variance = sharper image.
      */
-    private calculateSharpness;
+    private calculateSharpnessTensor;
     /**
-     * Calculate brightness as mean pixel intensity.
+     * Calculate contrast tensor as variance of pixel intensities.
+     * Returns variance tensor for async extraction.
      */
-    private calculateBrightness;
-    /**
-     * Calculate contrast as standard deviation of pixel intensities.
-     */
-    private calculateContrast;
+    private calculateContrastTensor;
     /**
      * Get default result when analysis fails.
      */
@@ -1631,7 +1658,33 @@ export declare function initWebGPUWithFallback(): Promise<BackendInitResult>;
 
 export declare function inverseSigmoid(x: number): number;
 
+/**
+ * Calculate IOU (Intersection over Union) between two Box objects.
+ * @param box1 First box
+ * @param box2 Second box
+ * @param isIOU If true, calculates standard IOU. If false, calculates intersection over minimum area.
+ * @returns IOU value between 0 and 1
+ */
 export declare function iou(box1: Box, box2: Box, isIOU?: boolean): number;
+
+/**
+ * Calculate IOU from box data arrays at specific indices.
+ * Useful for NMS when boxes are stored in a 2D array.
+ * @param boxesData Array of boxes
+ * @param i Index of first box
+ * @param j Index of second box
+ * @returns IOU value between 0 and 1
+ */
+export declare function iouAtIndices(boxesData: number[][], i: number, j: number): number;
+
+/**
+ * Calculate IOU between two boxes in array format [top, left, bottom, right].
+ * Optimized version that avoids Box object creation.
+ * @param boxA First box as [top, left, bottom, right]
+ * @param boxB Second box as [top, left, bottom, right]
+ * @returns IOU value between 0 and 1
+ */
+export declare function iouFromArrays(boxA: BoxArray, boxB: BoxArray): number;
 
 export declare interface IPoint {
     x: number;
@@ -1648,7 +1701,7 @@ export declare interface IRect {
 /**
  * IR-SE block parameters.
  */
-export declare interface IRSEBlockParams {
+declare interface IRSEBlockParams {
     depthwise: tf.Tensor4D;
     bn1_mean: tf.Tensor1D;
     bn1_variance: tf.Tensor1D;
@@ -1670,7 +1723,7 @@ declare function isEven(num: number): boolean;
 
 declare function isFloat(num: number): boolean;
 
-export declare function isMediaElement(input: any): input is HTMLCanvasElement | HTMLImageElement | HTMLVideoElement;
+export declare function isMediaElement(input: unknown): input is HTMLImageElement | HTMLCanvasElement | HTMLVideoElement;
 
 export declare function isMediaLoaded(media: HTMLImageElement | HTMLVideoElement): boolean;
 
@@ -2085,7 +2138,7 @@ export declare class LabeledFaceDescriptors {
 /**
  * Landmark head parameters.
  */
-export declare interface LandmarkHeadParams {
+declare interface LandmarkHeadParams {
     weights: tf.Tensor4D;
     bias: tf.Tensor1D;
 }
@@ -2123,6 +2176,11 @@ export declare function matchDimensions(input: IDimensions, reference: IDimensio
     height: number;
 };
 
+/**
+ * Calculate minimum bounding box for a set of points.
+ * @param pts Array of points
+ * @returns BoundingBox containing all points
+ */
 export declare function minBbox(pts: IPoint[]): BoundingBox;
 
 export declare type MobilenetParams = {
@@ -2208,13 +2266,13 @@ export declare type NetOutput = {
 
 export declare type NetParams = {
     fc: {
-        age: FCParams_2;
-        gender: FCParams_2;
+        age: FCParams;
+        gender: FCParams;
     };
 };
 
 declare type NetParams_2 = {
-    fc: FCParams_2;
+    fc: FCParams;
 };
 
 declare type NetParams_3 = {
@@ -2267,7 +2325,7 @@ declare interface NetParams_6 {
     stage2: IRSEBlockParams;
     stage3: IRSEBlockParams;
     stage4: IRSEBlockParams;
-    fc: FCParams;
+    fc: FCParams_2;
 }
 
 /**
@@ -2350,7 +2408,51 @@ export declare abstract class NeuralNetwork<TNetParams> {
     };
 }
 
-export declare function nonMaxSuppression(boxes: Box[], scores: number[], iouThreshold: number, isIOU?: boolean): number[];
+/**
+ * Options for Non-Maximum Suppression.
+ */
+export declare interface NMSOptions {
+    /** Maximum number of boxes to return. Default: Infinity */
+    maxResults?: number;
+    /** Minimum score threshold. Boxes with scores below this are filtered. Default: 0 */
+    scoreThreshold?: number;
+    /** Use standard IOU (true) or intersection over minimum area (false). Default: true */
+    isIOU?: boolean;
+}
+
+/**
+ * Unified Non-Maximum Suppression implementation.
+ * Supports both Box objects and array-based boxes for flexibility and performance.
+ *
+ * @param boxes Array of boxes (either Box objects or [top, left, bottom, right] arrays)
+ * @param scores Array of confidence scores for each box
+ * @param iouThreshold IOU threshold for suppression (boxes with IOU > threshold are suppressed)
+ * @param options Additional NMS options
+ * @returns Indices of selected boxes sorted by score (highest first)
+ *
+ * @example
+ * // With Box objects
+ * const indices = nonMaxSuppression(boxObjects, scores, 0.5);
+ *
+ * @example
+ * // With array boxes
+ * const boxes = [[0.1, 0.1, 0.5, 0.5], [0.15, 0.15, 0.55, 0.55]];
+ * const indices = nonMaxSuppression(boxes, scores, 0.5, { maxResults: 10 });
+ */
+export declare function nonMaxSuppression(boxes: Box[] | BoxArray[], scores: number[], iouThreshold: number, options?: NMSOptions | boolean): number[];
+
+/**
+ * Non-Maximum Suppression optimized for 2D array box data.
+ * This variant is optimized for use with pre-fetched tensor data.
+ *
+ * @param boxesData 2D array of boxes where each box is [top, left, bottom, right]
+ * @param scores Array of confidence scores
+ * @param maxResults Maximum number of boxes to return
+ * @param iouThreshold IOU threshold for suppression
+ * @param scoreThreshold Minimum score threshold
+ * @returns Indices of selected boxes
+ */
+export declare function nonMaxSuppressionFast(boxesData: number[][], scores: number[], maxResults: number, iouThreshold: number, scoreThreshold: number): number[];
 
 /**
  * Normalize an image tensor by subtracting mean RGB values.
@@ -2538,7 +2640,7 @@ export declare function resetBackendState(): void;
 /**
  * Residual block parameters.
  */
-export declare interface ResidualBlockParams {
+declare interface ResidualBlockParams {
     conv1: FaceMeshConvBlockParams;
     conv2: FaceMeshConvBlockParams;
 }
@@ -2550,7 +2652,15 @@ declare type ResidualLayerParams = {
 
 export declare function resizeResults<T>(results: T, dimensions: IDimensions): T;
 
-export declare function resolveInput(arg: string | any): any;
+/**
+ * Resolve an input argument to an HTML element.
+ * If a string is passed in browser environment, it's treated as an element ID.
+ *
+ * @param arg Element ID string or the element itself
+ * @returns The resolved element, or null if not found
+ * @throws Error if element ID is provided but element is not found
+ */
+export declare function resolveInput(arg: string | unknown): unknown;
 
 declare function round(num: number, prec?: number): number;
 
@@ -2569,7 +2679,7 @@ declare class SeparableConvParams {
 /**
  * Squeeze-Excitation parameters.
  */
-export declare interface SEParams {
+declare interface SEParams {
     fc1: tf.Tensor2D;
     fc2: tf.Tensor2D;
 }
@@ -2601,7 +2711,19 @@ export declare interface SerializedWeights {
 
 declare function setEnv(env: Environment): void;
 
-export declare function shuffleArray(inputArray: any[]): any[];
+/**
+ * Enable or disable input validation for FaceRecognitionNet.
+ * Validation is enabled by default in development, disabled in production.
+ */
+export declare function setFaceRecognitionInputValidation(enabled: boolean): void;
+
+/**
+ * Enable or disable input validation for SsdMobilenetv1.
+ * Validation is enabled by default in development, disabled in production.
+ */
+export declare function setInputValidation(enabled: boolean): void;
+
+export declare function shuffleArray<T>(inputArray: T[]): T[];
 
 export declare function sigmoid(x: number): number;
 
@@ -2650,6 +2772,15 @@ export declare class SsdMobilenetv1 extends NeuralNetwork<NetParams_4> {
         boxes: tf.Tensor2D[];
         scores: tf.Tensor1D[];
     };
+    /**
+     * Forward pass with optional input validation.
+     * @param input The input tensor
+     * @param validateInput Whether to validate input range (default: based on environment)
+     */
+    forwardInputWithValidation(input: NetInput, validateInput?: boolean): Promise<{
+        boxes: tf.Tensor2D[];
+        scores: tf.Tensor1D[];
+    }>;
     forward(input: TNetInput): Promise<{
         boxes: tf.Tensor2D[];
         scores: tf.Tensor1D[];
@@ -2687,7 +2818,7 @@ export declare class SsdMobilenetv1Options {
 /**
  * Stem parameters.
  */
-export declare interface StemParams {
+declare interface StemParams {
     conv1: ConvBnParams;
     conv2: ConvBnParams;
     conv3: ConvBnParams;
@@ -2814,7 +2945,14 @@ declare class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
         paramMappings: ParamMapping[];
     };
     protected extractBoxes(outputTensor: tf.Tensor4D, inputBlobDimensions: Dimensions, scoreThreshold?: number): Promise<TinyYolov2ExtractBoxesResult[]>;
-    private extractPredictedClass;
+    protected extractPredictedClass(classesTensor: tf.Tensor4D, pos: {
+        row: number;
+        col: number;
+        anchor: number;
+    }): Promise<{
+        classScore: number;
+        label: number;
+    }>;
 }
 
 export declare type TinyYolov2Config = {

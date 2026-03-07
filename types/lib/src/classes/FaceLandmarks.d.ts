@@ -1,9 +1,10 @@
-import { IBoundingBox } from './BoundingBox';
+import type { IBoundingBox } from './BoundingBox';
 import { Box } from './Box';
-import { Dimensions, IDimensions } from './Dimensions';
+import type { IDimensions } from './Dimensions';
+import { Dimensions } from './Dimensions';
 import { FaceDetection } from './FaceDetection';
 import { Point } from './Point';
-import { IRect } from './Rect';
+import type { IRect } from './Rect';
 export interface IFaceLandmarks {
     positions: Point[];
     shift: Point;

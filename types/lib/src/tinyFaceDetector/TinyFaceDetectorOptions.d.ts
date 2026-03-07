@@ -1,4 +1,5 @@
-import { ITinyYolov2Options, TinyYolov2Options } from '../tinyYolov2/index';
+import type { ITinyYolov2Options } from '../tinyYolov2/index';
+import { TinyYolov2Options } from '../tinyYolov2/index';
 export type ITinyFaceDetectorOptions = ITinyYolov2Options;
 export declare class TinyFaceDetectorOptions extends TinyYolov2Options {
     protected _name: string;

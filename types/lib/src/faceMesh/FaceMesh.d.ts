@@ -1,11 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { NetInput, TNetInput } from '../dom/index';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { NetInput, TNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
 import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
-import { IFaceMeshOptions } from './FaceMeshOptions';
+import type { IFaceMeshOptions } from './FaceMeshOptions';
 import { FaceMeshLandmarks } from './FaceMeshLandmarks';
-import { NetParams } from './types';
+import type { NetParams } from './types';
 /**
  * FaceMesh - 468/478 point facial landmark detector from MediaPipe.
  *

@@ -3,7 +3,7 @@ import { createFileSystem } from './createFileSystem';
 import { createNodejsEnv } from './createNodejsEnv';
 import { isBrowser } from './isBrowser';
 import { isNodejs } from './isNodejs';
-import { Environment } from './types';
+import type { Environment } from './types';
 declare function getEnv(): Environment;
 declare function setEnv(env: Environment): void;
 declare function initialize(): void | null;

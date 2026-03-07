@@ -1,6 +1,7 @@
 import { Box } from './Box';
-import { Dimensions, IDimensions } from './Dimensions';
-import { IRect } from './Rect';
+import type { IDimensions } from './Dimensions';
+import { Dimensions } from './Dimensions';
+import type { IRect } from './Rect';
 export declare class ObjectDetection {
     private _score;
     private _classScore;

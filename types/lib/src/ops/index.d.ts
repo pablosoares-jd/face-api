@@ -4,5 +4,6 @@ export * from './nonMaxSuppression';
 export * from './normalize';
 export * from './padToSquare';
 export * from './shuffleArray';
+export { nonMaxSuppressionFast } from './nonMaxSuppression';
 export declare function sigmoid(x: number): number;
 export declare function inverseSigmoid(x: number): number;

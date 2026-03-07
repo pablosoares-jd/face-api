@@ -1,7 +1,7 @@
-import * as tf from '@tensorflow/tfjs';
-import { NetInput, TNetInput } from '../index';
-import { ConvParams, SeparableConvParams } from '../common/index';
-import { NeuralNetwork } from '../NeuralNetwork';
+import type * as tf from '@tensorflow/tfjs';
+import type { NetInput, TNetInput } from '../index';
+import type { ConvParams, SeparableConvParams } from '../common/index';
+import type { NeuralNetwork } from '../NeuralNetwork';
 export type BatchNormParams = {
     mean: tf.Tensor1D;
     variance: tf.Tensor1D;

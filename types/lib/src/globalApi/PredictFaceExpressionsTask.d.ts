@@ -1,8 +1,8 @@
-import * as tf from '@tensorflow/tfjs';
-import { TNetInput } from '../dom/index';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { WithFaceExpressions } from '../factories/WithFaceExpressions';
-import { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type * as tf from '@tensorflow/tfjs';
+import type { TNetInput } from '../dom/index';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceExpressions } from '../factories/WithFaceExpressions';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
 import { ComposableTask } from './ComposableTask';
 import { ComputeAllFaceDescriptorsTask, ComputeSingleFaceDescriptorTask } from './ComputeFaceDescriptorsTasks';
 import { PredictAllAgeAndGenderTask, PredictAllAgeAndGenderWithFaceAlignmentTask, PredictSingleAgeAndGenderTask, PredictSingleAgeAndGenderWithFaceAlignmentTask } from './PredictAgeAndGenderTask';

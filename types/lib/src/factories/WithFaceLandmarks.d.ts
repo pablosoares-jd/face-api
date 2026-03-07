@@ -1,7 +1,7 @@
 import { FaceDetection } from '../classes/FaceDetection';
 import { FaceLandmarks } from '../classes/FaceLandmarks';
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { WithFaceDetection } from './WithFaceDetection';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { WithFaceDetection } from './WithFaceDetection';
 export type WithFaceLandmarks<TSource extends WithFaceDetection<{}>, TFaceLandmarks extends FaceLandmarks = FaceLandmarks68> = TSource & {
     landmarks: TFaceLandmarks;
     unshiftedLandmarks: TFaceLandmarks;

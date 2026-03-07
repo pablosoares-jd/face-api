@@ -1,10 +1,10 @@
-import { FaceDetection } from '../classes/FaceDetection';
-import { TNetInput } from '../dom/index';
+import type { FaceDetection } from '../classes/FaceDetection';
+import type { TNetInput } from '../dom/index';
 import { ComposableTask } from './ComposableTask';
 import { DetectAllFaceLandmarksTask, DetectSingleFaceLandmarksTask } from './DetectFaceLandmarksTasks';
 import { PredictAllAgeAndGenderTask, PredictSingleAgeAndGenderTask } from './PredictAgeAndGenderTask';
 import { PredictAllFaceExpressionsTask, PredictSingleFaceExpressionsTask } from './PredictFaceExpressionsTask';
-import { FaceDetectionOptions } from './types';
+import type { FaceDetectionOptions } from './types';
 export declare class DetectFacesTaskBase<TReturn> extends ComposableTask<TReturn> {
     protected input: TNetInput;
     protected options: FaceDetectionOptions;

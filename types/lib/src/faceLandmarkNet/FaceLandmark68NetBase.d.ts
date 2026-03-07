@@ -1,8 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
-import { IDimensions } from '../classes/index';
+import type { IDimensions } from '../classes/index';
 import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { NetInput, TNetInput } from '../dom/index';
-import { FaceFeatureExtractorParams, TinyFaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
+import type { NetInput, TNetInput } from '../dom/index';
+import type { FaceFeatureExtractorParams, TinyFaceFeatureExtractorParams } from '../faceFeatureExtractor/types';
 import { FaceProcessor } from '../faceProcessor/FaceProcessor';
 export declare abstract class FaceLandmark68NetBase<TExtractorParams extends FaceFeatureExtractorParams | TinyFaceFeatureExtractorParams> extends FaceProcessor<TExtractorParams> {
     postProcess(output: tf.Tensor2D, inputSize: number, originalDimensions: IDimensions[]): tf.Tensor2D;

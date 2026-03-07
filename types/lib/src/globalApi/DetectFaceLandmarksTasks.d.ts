@@ -1,8 +1,8 @@
-import { TNetInput } from '../dom/index';
-import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
-import { FaceLandmark68TinyNet } from '../faceLandmarkNet/FaceLandmark68TinyNet';
-import { WithFaceDetection } from '../factories/WithFaceDetection';
-import { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
+import type { TNetInput } from '../dom/index';
+import type { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
+import type { FaceLandmark68TinyNet } from '../faceLandmarkNet/FaceLandmark68TinyNet';
+import type { WithFaceDetection } from '../factories/WithFaceDetection';
+import type { WithFaceLandmarks } from '../factories/WithFaceLandmarks';
 import { ComposableTask } from './ComposableTask';
 import { ComputeAllFaceDescriptorsTask, ComputeSingleFaceDescriptorTask } from './ComputeFaceDescriptorsTasks';
 import { PredictAllAgeAndGenderWithFaceAlignmentTask, PredictSingleAgeAndGenderWithFaceAlignmentTask } from './PredictAgeAndGenderTask';

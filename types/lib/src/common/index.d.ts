@@ -1,3 +1,4 @@
+export * from './batchProcessing';
 export * from './convLayer';
 export * from './depthwiseSeparableConv';
 export * from './disposeUnusedWeightTensors';
@@ -6,5 +7,9 @@ export * from './extractFCParamsFactory';
 export * from './extractSeparableConvParamsFactory';
 export * from './extractWeightEntryFactory';
 export * from './extractWeightsFactory';
+export * from './fullyConnectedLayer';
 export * from './getModelUris';
+export * from './inputValidation';
+export * from './memoryProfile';
+export * from './paramExtractorFactory';
 export * from './types';

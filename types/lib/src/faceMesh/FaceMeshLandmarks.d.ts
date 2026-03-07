@@ -1,4 +1,5 @@
-import { IDimensions, Point } from '../classes/index';
+import type { IDimensions } from '../classes/index';
+import { Point } from '../classes/index';
 import { FaceLandmarks } from '../classes/FaceLandmarks';
 import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
 /**

@@ -1,7 +1,7 @@
 import { FaceDetection } from '../classes/FaceDetection';
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { TNetInput } from '../dom/index';
-import { BlazeFaceKeypoints } from '../blazeFace/BlazeFace';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { TNetInput } from '../dom/index';
+import type { BlazeFaceKeypoints } from '../blazeFace/BlazeFace';
 /**
  * Source type for the image being analyzed.
  */

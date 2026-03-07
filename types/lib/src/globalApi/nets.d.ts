@@ -1,18 +1,19 @@
 import { AgeGenderNet } from '../ageGenderNet/AgeGenderNet';
-import { AgeAndGenderPrediction } from '../ageGenderNet/types';
-import { FaceDetection } from '../classes/FaceDetection';
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { TNetInput } from '../dom/index';
+import type { AgeAndGenderPrediction } from '../ageGenderNet/types';
+import type { FaceDetection } from '../classes/FaceDetection';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { TNetInput } from '../dom/index';
 import { FaceExpressionNet } from '../faceExpressionNet/FaceExpressionNet';
-import { FaceExpressions } from '../faceExpressionNet/FaceExpressions';
+import type { FaceExpressions } from '../faceExpressionNet/FaceExpressions';
 import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
 import { FaceLandmark68TinyNet } from '../faceLandmarkNet/FaceLandmark68TinyNet';
 import { FaceRecognitionNet } from '../faceRecognitionNet/FaceRecognitionNet';
 import { SsdMobilenetv1 } from '../ssdMobilenetv1/SsdMobilenetv1';
-import { SsdMobilenetv1Options } from '../ssdMobilenetv1/SsdMobilenetv1Options';
+import type { SsdMobilenetv1Options } from '../ssdMobilenetv1/SsdMobilenetv1Options';
 import { TinyFaceDetector } from '../tinyFaceDetector/TinyFaceDetector';
-import { TinyFaceDetectorOptions } from '../tinyFaceDetector/TinyFaceDetectorOptions';
-import { ITinyYolov2Options, TinyYolov2 } from '../tinyYolov2/index';
+import type { TinyFaceDetectorOptions } from '../tinyFaceDetector/TinyFaceDetectorOptions';
+import type { ITinyYolov2Options } from '../tinyYolov2/index';
+import { TinyYolov2 } from '../tinyYolov2/index';
 export declare const nets: {
     ssdMobilenetv1: SsdMobilenetv1;
     tinyFaceDetector: TinyFaceDetector;

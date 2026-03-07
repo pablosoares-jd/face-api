@@ -1,12 +1,12 @@
 import * as tf from '@tensorflow/tfjs';
-import { Dimensions } from '../classes/Dimensions';
+import type { Dimensions } from '../classes/Dimensions';
 import { ObjectDetection } from '../classes/ObjectDetection';
-import { NetInput } from '../dom/NetInput';
-import { TNetInput } from '../dom/types';
+import type { NetInput } from '../dom/NetInput';
+import type { TNetInput } from '../dom/types';
 import { NeuralNetwork } from '../NeuralNetwork';
-import { TinyYolov2Config } from './config';
-import { ITinyYolov2Options } from './TinyYolov2Options';
-import { DefaultTinyYolov2NetParams, MobilenetParams, TinyYolov2ExtractBoxesResult, TinyYolov2NetParams } from './types';
+import type { TinyYolov2Config } from './config';
+import type { ITinyYolov2Options } from './TinyYolov2Options';
+import type { DefaultTinyYolov2NetParams, MobilenetParams, TinyYolov2ExtractBoxesResult, TinyYolov2NetParams } from './types';
 export declare class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     static DEFAULT_FILTER_SIZES: number[];
     private _config;
@@ -29,5 +29,12 @@ export declare class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
         paramMappings: import("../common/types").ParamMapping[];
     };
     protected extractBoxes(outputTensor: tf.Tensor4D, inputBlobDimensions: Dimensions, scoreThreshold?: number): Promise<TinyYolov2ExtractBoxesResult[]>;
-    private extractPredictedClass;
+    protected extractPredictedClass(classesTensor: tf.Tensor4D, pos: {
+        row: number;
+        col: number;
+        anchor: number;
+    }): Promise<{
+        classScore: number;
+        label: number;
+    }>;
 }

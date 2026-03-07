@@ -1,6 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 import { Point } from '../classes/index';
-import { Dimensions, IDimensions } from '../classes/Dimensions';
+import type { IDimensions } from '../classes/Dimensions';
+import { Dimensions } from '../classes/Dimensions';
 export declare function isTensor(tensor: any, dim: number): boolean;
 export declare function isTensor1D(tensor: any): tensor is tf.Tensor1D;
 export declare function isTensor2D(tensor: any): tensor is tf.Tensor2D;

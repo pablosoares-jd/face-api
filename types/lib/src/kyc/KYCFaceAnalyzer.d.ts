@@ -1,6 +1,6 @@
-import { FaceDetection } from '../classes/FaceDetection';
-import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
-import { TNetInput } from '../dom/index';
+import type { FaceDetection } from '../classes/FaceDetection';
+import type { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import type { TNetInput } from '../dom/index';
 /**
  * Face quality metrics for KYC validation.
  */

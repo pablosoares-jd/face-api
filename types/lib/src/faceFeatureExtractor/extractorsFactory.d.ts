@@ -1,5 +1,5 @@
-import { ExtractWeightsFunction, ParamMapping } from '../common/index';
-import { DenseBlock3Params, DenseBlock4Params } from './types';
+import type { ExtractWeightsFunction, ParamMapping } from '../common/index';
+import type { DenseBlock3Params, DenseBlock4Params } from './types';
 export declare function extractorsFactory(extractWeights: ExtractWeightsFunction, paramMappings: ParamMapping[]): {
     extractDenseBlock3Params: (channelsIn: number, channelsOut: number, mappedPrefix: string, isFirstLayer?: boolean) => DenseBlock3Params;
     extractDenseBlock4Params: (channelsIn: number, channelsOut: number, mappedPrefix: string, isFirstLayer?: boolean) => DenseBlock4Params;

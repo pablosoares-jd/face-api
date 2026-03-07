@@ -1,12 +1,17 @@
 import * as tf from '@tensorflow/tfjs';
-import { NetInput, TNetInput } from '../dom/index';
+import type { NetInput, TNetInput } from '../dom/index';
 import { NeuralNetwork } from '../NeuralNetwork';
-import { NetParams } from './types';
+import type { NetParams } from './types';
+/**
+ * Enable or disable input validation for FaceRecognitionNet.
+ * Validation is enabled by default in development, disabled in production.
+ */
+export declare function setFaceRecognitionInputValidation(enabled: boolean): void;
 export declare class FaceRecognitionNet extends NeuralNetwork<NetParams> {
     constructor();
     forwardInput(input: NetInput): tf.Tensor2D;
     forward(input: TNetInput): Promise<tf.Tensor2D>;
-    computeFaceDescriptor(input: TNetInput): Promise<Float32Array | Float32Array[]>;
+    computeFaceDescriptor(input: TNetInput, validateInput?: boolean): Promise<Float32Array | Float32Array[]>;
     protected getDefaultModelName(): string;
     protected extractParamsFromWeightMap(weightMap: tf.NamedTensorMap): {
         params: NetParams;

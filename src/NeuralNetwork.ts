@@ -219,9 +219,9 @@ export abstract class NeuralNetwork<TNetParams> {
       filePaths.map(async (fp) => {
         const buf = await readFile(fp);
         if (typeof buf === 'string') {
-          return Buffer.from(buf).buffer;
+          return Buffer.from(buf).buffer as ArrayBuffer;
         }
-        return buf.buffer;
+        return buf.buffer as ArrayBuffer;
       }),
     );
 

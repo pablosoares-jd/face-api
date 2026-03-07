@@ -1,10 +1,10 @@
-import { IBoundingBox } from './BoundingBox';
-import { IDimensions } from './Dimensions';
+import type { IBoundingBox } from './BoundingBox';
+import type { IDimensions } from './Dimensions';
 import { Point } from './Point';
-import { IRect } from './Rect';
-export declare class Box<BoxType = any> implements IBoundingBox, IRect {
-    static isRect(rect: any): boolean;
-    static assertIsValidBox(box: any, callee: string, allowNegativeDimensions?: boolean): void;
+import type { IRect } from './Rect';
+export declare class Box<BoxType = unknown> implements IBoundingBox, IRect {
+    static isRect(rect: unknown): rect is IRect;
+    static assertIsValidBox(box: unknown, callee: string, allowNegativeDimensions?: boolean): void;
     private _x;
     private _y;
     private _width;
@@ -42,5 +42,5 @@ export declare class Box<BoxType = any> implements IBoundingBox, IRect {
         w: number;
         h: number;
     };
-    calibrate(region: Box): Box<any>;
+    calibrate(region: Box): Box<unknown>;
 }

@@ -1,3 +1,3 @@
 export * from './BlazeFace';
 export * from './BlazeFaceOptions';
-export * from './types';
+export type { ConvBlockParams, HeadParams } from './types';

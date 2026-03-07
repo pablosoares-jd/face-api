@@ -1,5 +1,5 @@
-import * as tf from '@tensorflow/tfjs';
-import { ConvParams } from '../common/index';
+import type * as tf from '@tensorflow/tfjs';
+import type { ConvParams } from '../common/index';
 export type PointwiseConvParams = {
     filters: tf.Tensor4D;
     batch_norm_offset: tf.Tensor1D;
